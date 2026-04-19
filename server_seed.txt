@@ -1,0 +1,2 @@
+this file starts on server side
+used for gets command test

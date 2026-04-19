@@ -1,0 +1,2 @@
+this is a local upload test file
+line 2 for resume and transfer check
