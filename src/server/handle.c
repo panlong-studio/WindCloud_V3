@@ -12,9 +12,20 @@
 #include <errno.h>
 #include "handle.h"
 #include "protocol.h"
+#include "log.h"
 
-#define SERVER_BASE_DIR "./upload"
+#define SERVER_BASE_DIR "../test"
 #define BUFFER_SIZE 4096
+
+static const char *get_server_base_dir(void) {
+    if (access(SERVER_BASE_DIR, F_OK) == 0) {
+        return SERVER_BASE_DIR;
+    }
+    if (access("./test", F_OK) == 0) {
+        return "./test";
+    }
+    return SERVER_BASE_DIR;
+}
 
 // 函数作用：向客户端发送一条普通文本消息。
 // 参数 listen_fd：客户端连接 fd。
@@ -28,7 +39,12 @@ void send_msg(int listen_fd, const char *msg) {
     init_command_packet(&reply_packet, CMD_TYPE_REPLY, msg);
 
     // 直接按固定结构体大小发送。
-    send_command_packet(listen_fd, &reply_packet);
+    if (send_command_packet(listen_fd, &reply_packet) == -1) {
+        LOG_WARN("发送响应失败，客户端fd=%d，消息=%s", listen_fd, msg);
+        return;
+    }
+
+    LOG_DEBUG("响应发送成功，客户端fd=%d，消息=%s", listen_fd, msg);
 }
 
 // 函数作用：检查用户传来的路径参数是否基本合法。
@@ -41,7 +57,7 @@ static int check_arg_path(const char *arg) {
     }
 
     // 当前项目只做最基础的安全限制：
-    // 只要出现 ..，就拒绝，避免跳出 ./upload 根目录。
+    // 只要出现 ..，就拒绝，避免跳出服务端根目录。
     if (strstr(arg, "..") != NULL) {
         return -1;
     }
@@ -57,8 +73,9 @@ static int check_arg_path(const char *arg) {
 static int get_current_real_path(char *res, int size, const char *current_path) {
     // 例如：
     // current_path = /demo
-    // 最终拼出来就是 ./upload/demo
-    int ret = snprintf(res, size, "%s%s", SERVER_BASE_DIR, current_path);
+    // 最终拼出来就是 ../test/demo。
+    const char *base_dir = get_server_base_dir();
+    int ret = snprintf(res, size, "%s%s", base_dir, current_path);
 
     // snprintf 返回值 >= size，说明输出被截断了。
     if (ret < 0 || ret >= size) {
@@ -83,12 +100,14 @@ static int get_real_path(char *res, int size, const char *path, const char *arg)
     // ret 用来保存 snprintf 的返回值。
     int ret = 0;
 
-    // 如果当前已经在根目录，就要拼成 ./upload/xxx。
+    const char *base_dir = get_server_base_dir();
+
+    // 如果当前已经在根目录，就要拼成 ../test/xxx。
     if (strcmp(path, "/") == 0) {
-        ret = snprintf(res, size, "%s/%s", SERVER_BASE_DIR, arg);
+        ret = snprintf(res, size, "%s/%s", base_dir, arg);
     } else {
-        // 如果当前不在根目录，就要拼成 ./upload/当前目录/参数。
-        ret = snprintf(res, size, "%s%s/%s", SERVER_BASE_DIR, path, arg);
+        // 如果当前不在根目录，就要拼成 ../test/当前目录/参数。
+        ret = snprintf(res, size, "%s%s/%s", base_dir, path, arg);
     }
 
     // 再做一次长度检查。
@@ -156,11 +175,13 @@ void handle_request(int listen_fd) {
         // 每次都按固定大小完整接收一个命令结构体。
         if (recv_command_packet(listen_fd, &cmd_packet) <= 0) {
             // 返回 <= 0 说明客户端断开了，或者协议接收失败。
+            LOG_INFO("客户端连接断开，客户端fd=%d，当前路径=%s", listen_fd, current_path);
             break;
         }
 
         // 取出本轮命令的枚举类型。
         cmd_type_t cmd_type = get_packet_cmd_type(&cmd_packet);
+        LOG_DEBUG("收到客户端命令，客户端fd=%d，命令类型=%d，数据=%s", listen_fd, cmd_type, cmd_packet.data);
 
         // 这里使用 switch-case，而不再是长长的 if-else if。
         switch (cmd_type) {
@@ -194,6 +215,7 @@ void handle_request(int listen_fd) {
 
         default:
             // 命令类型无法识别时，返回一个错误提示。
+            LOG_WARN("命令类型无效，客户端fd=%d，命令类型=%d", listen_fd, cmd_type);
             send_msg(listen_fd, "指令错误!");
             break;
         }
@@ -208,6 +230,7 @@ void handle_request(int listen_fd) {
 void handle_cd(int listen_fd, char *current_path, char *arg) {
     // 没有参数时，直接提示输入错误。
     if (arg == NULL || arg[0] == '\0') {
+        LOG_WARN("切换目录缺少参数，客户端fd=%d", listen_fd);
         send_msg(listen_fd, "输入错误");
         return;
     }
@@ -215,6 +238,7 @@ void handle_cd(int listen_fd, char *current_path, char *arg) {
     // 当前项目把 cd .. 简化成“直接回到根目录”。
     if (strcmp(arg, "..") == 0) {
         strcpy(current_path, "/");
+        LOG_INFO("客户端切换回根目录，客户端fd=%d", listen_fd);
         send_msg(listen_fd, "已返回根目录");
         return;
     }
@@ -224,6 +248,7 @@ void handle_cd(int listen_fd, char *current_path, char *arg) {
 
     // 先把当前虚拟路径和目录名拼成真实路径。
     if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
+        LOG_WARN("切换目录路径非法，客户端fd=%d，当前路径=%s，参数=%s", listen_fd, current_path, arg);
         send_msg(listen_fd, "路径非法或过长");
         return;
     }
@@ -231,6 +256,7 @@ void handle_cd(int listen_fd, char *current_path, char *arg) {
     // 用 opendir 试探这个目录是否真的存在。
     DIR *dir = opendir(real_path);
     if (dir == NULL) {
+        LOG_WARN("切换目录失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         send_msg(listen_fd, "目录不存在！");
         return;
     }
@@ -240,10 +266,12 @@ void handle_cd(int listen_fd, char *current_path, char *arg) {
 
     // 更新客户端看到的虚拟路径。
     if (update_current_path(current_path, 512, arg) == -1) {
+        LOG_WARN("切换目录路径过长，客户端fd=%d，当前路径=%s，参数=%s", listen_fd, current_path, arg);
         send_msg(listen_fd, "路径过长");
         return;
     }
 
+    LOG_INFO("切换目录成功，客户端fd=%d，当前路径=%s", listen_fd, current_path);
     send_msg(listen_fd, "进入目录成功");
 }
 
@@ -255,6 +283,7 @@ void handle_ls(int listen_fd, char *current_path) {
     // real_path 保存当前目录对应的真实磁盘路径。
     char real_path[1024] = {0};
     if (get_current_real_path(real_path, sizeof(real_path), current_path) == -1) {
+        LOG_WARN("列目录路径过长，客户端fd=%d，当前路径=%s", listen_fd, current_path);
         send_msg(listen_fd, "路径过长");
         return;
     }
@@ -262,6 +291,7 @@ void handle_ls(int listen_fd, char *current_path) {
     // 打开目录准备遍历。
     DIR *dir = opendir(real_path);
     if (dir == NULL) {
+        LOG_WARN("列目录失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         send_msg(listen_fd, "目录打开失败");
         return;
     }
@@ -302,11 +332,13 @@ void handle_ls(int listen_fd, char *current_path) {
 
     // 如果 used 还是 0，说明目录里没有普通可显示项。
     if (used == 0) {
+        LOG_INFO("目录为空，客户端fd=%d，路径=%s", listen_fd, current_path);
         send_msg(listen_fd, "当前目录为空");
         return;
     }
 
     // 把目录列表发给客户端。
+    LOG_INFO("列目录成功，客户端fd=%d，路径=%s", listen_fd, current_path);
     send_msg(listen_fd, result);
 }
 
@@ -316,6 +348,7 @@ void handle_ls(int listen_fd, char *current_path) {
 // 返回值：无。
 void handle_pwd(int listen_fd, char *current_path) {
     // pwd 的逻辑最简单，直接把当前虚拟路径返回即可。
+    LOG_INFO("处理显示当前路径命令，客户端fd=%d，当前路径=%s", listen_fd, current_path);
     send_msg(listen_fd, current_path);
 }
 
@@ -330,14 +363,17 @@ void handle_rm(int listen_fd, char *current_path, char *arg) {
 
     // 先拼出真实路径。
     if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
+        LOG_WARN("删除路径非法，客户端fd=%d，当前路径=%s，参数=%s", listen_fd, current_path, arg);
         send_msg(listen_fd, "路径非法或过长");
         return;
     }
 
     // remove 返回 0 表示删除成功。
     if (remove(real_path) == 0) {
+        LOG_INFO("删除成功，客户端fd=%d，路径=%s", listen_fd, real_path);
         send_msg(listen_fd, "删除成功");
     } else {
+        LOG_WARN("删除失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         send_msg(listen_fd, "删除失败");
     }
 }
@@ -353,14 +389,17 @@ void handle_mkdir(int listen_fd, char *current_path, char *arg) {
 
     // 先拼真实路径。
     if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
+        LOG_WARN("创建目录路径非法，客户端fd=%d，当前路径=%s，参数=%s", listen_fd, current_path, arg);
         send_msg(listen_fd, "路径非法或过长");
         return;
     }
 
     // mkdir 返回 0 表示创建成功。
     if (mkdir(real_path, 0755) == 0) {
+        LOG_INFO("创建目录成功，客户端fd=%d，路径=%s", listen_fd, real_path);
         send_msg(listen_fd, "创建文件夹成功");
     } else {
+        LOG_WARN("创建目录失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         send_msg(listen_fd, "文件夹创建失败");
     }
 }
@@ -379,6 +418,7 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
 
     // 如果路径非法，直接返回 file_size = -1，告诉客户端失败。
     if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
+        LOG_WARN("下载路径非法，客户端fd=%d，当前路径=%s，参数=%s", listen_fd, current_path, arg);
         init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0);
         send_file_packet(listen_fd, &server_file_packet);
         return;
@@ -387,6 +427,7 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
     // 以只读方式打开目标文件。
     int file_fd = open(real_path, O_RDONLY);
     if (file_fd == -1) {
+        LOG_WARN("打开下载文件失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0);
         send_file_packet(listen_fd, &server_file_packet);
         return;
@@ -395,6 +436,7 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
     // st 用来保存文件状态。
     struct stat st;
     if (fstat(file_fd, &st) == -1) {
+        LOG_ERROR("读取下载文件状态失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         close(file_fd);
         init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0);
         send_file_packet(listen_fd, &server_file_packet);
@@ -404,6 +446,7 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
     // 第一步：先把文件总大小和文件名发给客户端。
     init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, st.st_size, 0);
     if (send_file_packet(listen_fd, &server_file_packet) == -1) {
+        LOG_WARN("发送下载文件信息失败，客户端fd=%d，路径=%s", listen_fd, real_path);
         close(file_fd);
         return;
     }
@@ -412,6 +455,7 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
     // 这个 offset 表示“客户端本地已经有多少字节了”。
     file_packet_t client_file_packet;
     if (recv_file_packet(listen_fd, &client_file_packet) <= 0) {
+        LOG_WARN("接收下载断点位置失败，客户端fd=%d，路径=%s", listen_fd, real_path);
         close(file_fd);
         return;
     }
@@ -421,8 +465,17 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
 
     // 只要 offset 越界，就回退到 0，从头开始传。
     if (offset < 0 || offset > st.st_size) {
+        LOG_WARN("下载断点位置无效，客户端fd=%d，偏移=%lld，大小=%lld",
+                 listen_fd,
+                 (long long)offset,
+                 (long long)st.st_size);
         offset = 0;
     }
+    LOG_DEBUG("下载断点信息，客户端fd=%d，路径=%s，偏移=%lld，大小=%lld",
+              listen_fd,
+              real_path,
+              (long long)offset,
+              (long long)st.st_size);
 
     // 计算还剩多少字节要传给客户端。
     off_t remaining = st.st_size - offset;
@@ -440,6 +493,12 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
             if (errno == EINTR) {
                 continue;
             }
+            LOG_WARN("下载发送中断，客户端fd=%d，路径=%s，已发送=%lld，总大小=%lld，错误码=%d",
+                     listen_fd,
+                     real_path,
+                     (long long)(st.st_size - remaining),
+                     (long long)st.st_size,
+                     errno);
             break;
         }
 
@@ -454,6 +513,18 @@ void handle_gets(int listen_fd, char *current_path, char *arg) {
 
     // 下载结束后关闭文件。
     close(file_fd);
+    if (remaining == 0) {
+        LOG_INFO("下载完成，客户端fd=%d，路径=%s，大小=%lld",
+                 listen_fd,
+                 real_path,
+                 (long long)st.st_size);
+    } else {
+        LOG_WARN("下载未完成，客户端fd=%d，路径=%s，已发送=%lld，总大小=%lld",
+                 listen_fd,
+                 real_path,
+                 (long long)(st.st_size - remaining),
+                 (long long)st.st_size);
+    }
 }
 
 // 函数作用：处理 puts 命令，也就是上传。
@@ -467,6 +538,7 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
 
     // 路径不合法时直接拒绝。
     if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
+        LOG_WARN("上传路径非法，客户端fd=%d，当前路径=%s，参数=%s", listen_fd, current_path, arg);
         send_msg(listen_fd, "路径非法或过长");
         return;
     }
@@ -476,6 +548,7 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
 
     // 第一步：先完整接收客户端发来的文件结构体。
     if (recv_file_packet(listen_fd, &client_file_packet) <= 0) {
+        LOG_WARN("接收上传文件信息失败，客户端fd=%d，路径=%s", listen_fd, real_path);
         send_msg(listen_fd, "接收文件信息失败");
         return;
     }
@@ -483,6 +556,7 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
     // 打开或创建服务端目标文件。
     int file_fd = open(real_path, O_RDWR | O_CREAT, 0666);
     if (file_fd == -1) {
+        LOG_ERROR("打开上传目标文件失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         send_msg(listen_fd, "服务端创建文件失败");
         return;
     }
@@ -496,13 +570,25 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
     // 如果 fstat 成功，就把当前文件大小取出来。
     if (fstat(file_fd, &st) == 0) {
         local_size = st.st_size;
+    } else {
+        LOG_WARN("读取上传目标文件状态失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
     }
 
     // 如果服务端旧文件比客户端新文件还大，说明这个旧文件不可信。
     // 这时把续传断点重置为 0。
     if (local_size > client_file_packet.file_size) {
+        LOG_WARN("上传断点已重置，客户端fd=%d，路径=%s，本地大小=%lld，客户端大小=%lld",
+                 listen_fd,
+                 real_path,
+                 (long long)local_size,
+                 (long long)client_file_packet.file_size);
         local_size = 0;
     }
+    LOG_DEBUG("上传断点信息，客户端fd=%d，路径=%s，偏移=%lld，总大小=%lld",
+              listen_fd,
+              real_path,
+              (long long)local_size,
+              (long long)client_file_packet.file_size);
 
     // 第二步：把服务端当前已有大小通过 offset 发回客户端。
     file_packet_t server_file_packet;
@@ -513,6 +599,7 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
                      local_size);
 
     if (send_file_packet(listen_fd, &server_file_packet) == -1) {
+        LOG_WARN("发送上传断点位置失败，客户端fd=%d，路径=%s", listen_fd, real_path);
         close(file_fd);
         return;
     }
@@ -525,6 +612,10 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
 
     // 如果 remaining <= 0，说明服务端已经是完整文件了。
     if (remaining <= 0) {
+        LOG_INFO("上传已跳过，服务端文件完整，客户端fd=%d，路径=%s，大小=%lld",
+                 listen_fd,
+                 real_path,
+                 (long long)file_len);
         send_msg(listen_fd, "服务器端文件已完整存在，无需续传。");
         close(file_fd);
         return;
@@ -533,6 +624,11 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
     // 在 mmap 之前，必须先把文件扩展到目标大小。
     // 否则后面往映射区尾部写数据时可能出错。
     if (ftruncate(file_fd, file_len) == -1) {
+        LOG_ERROR("扩展上传文件失败，客户端fd=%d，路径=%s，大小=%lld，错误码=%d",
+                  listen_fd,
+                  real_path,
+                  (long long)file_len,
+                  errno);
         send_msg(listen_fd, "服务端扩展文件失败");
         close(file_fd);
         return;
@@ -541,6 +637,7 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
     // 空文件是一个特殊情况。
     // 文件总长度为 0 时，不需要 mmap，也不需要继续收数据。
     if (file_len == 0) {
+        LOG_INFO("上传成功，客户端fd=%d，路径=%s，大小=0", listen_fd, real_path);
         send_msg(listen_fd, "上传完成！");
         close(file_fd);
         return;
@@ -549,6 +646,7 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
     // map_ptr 指向“整个文件映射到内存后的起始地址”。
     char *map_ptr = mmap(NULL, file_len, PROT_READ | PROT_WRITE, MAP_SHARED, file_fd, 0);
     if (map_ptr == MAP_FAILED) {
+        LOG_ERROR("映射上传文件失败，客户端fd=%d，路径=%s，错误码=%d", listen_fd, real_path, errno);
         send_msg(listen_fd, "服务端内存映射失败");
         close(file_fd);
         return;
@@ -590,8 +688,17 @@ void handle_puts(int listen_fd, char *current_path, char *arg) {
     // 这时要把文件截断到“真实已收到”的大小。
     if (received_count < remaining) {
         ftruncate(file_fd, local_size + received_count);
+        LOG_WARN("上传中断，客户端fd=%d，路径=%s，已保存=%lld，总大小=%lld",
+                 listen_fd,
+                 real_path,
+                 (long long)(local_size + received_count),
+                 (long long)file_len);
         send_msg(listen_fd, "传输中断，已保存当前进度。");
     } else {
+        LOG_INFO("上传成功，客户端fd=%d，路径=%s，大小=%lld",
+                 listen_fd,
+                 real_path,
+                 (long long)file_len);
         send_msg(listen_fd, "上传完成！");
     }
 

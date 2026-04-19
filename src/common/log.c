@@ -1,5 +1,7 @@
 #include "log.h"
 
+#include <errno.h>
+
 // g_log_level 表示当前全局日志级别，默认从 INFO 开始。
 static int g_log_level=LOG_LEVEL_INFO;
 
@@ -48,7 +50,7 @@ int init_log(const char* level_str, const char* log_file){
     if(log_file){
         g_log_fp=fopen(log_file,"a");
         if(!g_log_fp){
-            perror("Failed to open log file");
+            fprintf(stderr, "打开日志文件失败，错误码=%d\n", errno);
             return -1;
         }
     }else{

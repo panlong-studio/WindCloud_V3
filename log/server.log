@@ -1,0 +1,8 @@
+[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=INFO
+[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-19 19:18:31] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-19 19:18:31] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=3
+[2026-04-19 19:18:31] [ERROR] [src/server/server_socket.c:21 init_socket] 创建服务端监听套接字失败，错误码=1
+[2026-04-19 19:18:31] [INFO] [src/server/server.c:120 main] 服务端父进程退出

@@ -5,8 +5,10 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "client_command_handle.h"
 #include "protocol.h"
+#include "log.h"
 
 #define BUFFER_SIZE 4096
 
@@ -45,11 +47,13 @@ static void recv_server_reply(int sock_fd) {
     // 按固定结构体大小完整接收。
     if (recv_command_packet(sock_fd, &reply_packet) <= 0) {
         printf("接收服务端响应失败\n");
+        LOG_WARN("接收服务端响应失败，套接字=%d", sock_fd);
         return;
     }
 
     // 把服务端返回的文本直接打印出来。
     printf("%s\n", reply_packet.data);
+    LOG_DEBUG("收到服务端响应，套接字=%d，消息=%s", sock_fd, reply_packet.data);
 }
 
 // 函数作用：处理用户输入的一整条命令。
@@ -88,11 +92,17 @@ void process_command(int sock_fd, const char *input) {
     // 把字符串命令转换成枚举命令。
     // 后面客户端和服务端通信，都靠这个编号判断命令类型。
     cmd_type_t cmd_type = get_cmd_type(cmd);
+    if (cmd_type == CMD_TYPE_INVALID) {
+        printf("无效命令\n");
+        LOG_WARN("无效命令，输入=%s", input);
+        return;
+    }
 
     // ------------------------------
     // 第一类：处理 gets 下载命令
     // ------------------------------
     if (cmd_type == CMD_TYPE_GETS) {
+        LOG_INFO("客户端请求下载文件，文件=%s", arg);
         // 先准备一个普通命令结构体，告诉服务端“我要下载哪个文件”。
         command_packet_t cmd_packet;
 
@@ -102,6 +112,7 @@ void process_command(int sock_fd, const char *input) {
         // 先把下载命令发给服务端。
         if (send_command_packet(sock_fd, &cmd_packet) == -1) {
             printf("发送命令失败\n");
+            LOG_ERROR("发送下载命令失败，文件=%s", arg);
             return;
         }
 
@@ -114,12 +125,14 @@ void process_command(int sock_fd, const char *input) {
         // 3. 当前下载的是哪个文件
         if (recv_file_packet(sock_fd, &server_file_packet) <= 0) {
             printf("接收文件信息失败\n");
+            LOG_WARN("接收下载文件信息失败，文件=%s", arg);
             return;
         }
 
         // file_size < 0 说明服务端没有这个文件。
         if (server_file_packet.file_size < 0) {
             printf("服务器文件不存在\n");
+            LOG_WARN("服务端文件不存在，文件=%s", arg);
             return;
         }
 
@@ -152,6 +165,11 @@ void process_command(int sock_fd, const char *input) {
         } else {
             request_offset = 0;
         }
+        LOG_DEBUG("下载断点信息，文件=%s，本地大小=%lld，服务端大小=%lld，偏移=%lld",
+                  arg,
+                  (long long)local_size,
+                  (long long)server_file_packet.file_size,
+                  (long long)request_offset);
 
         // client_file_packet 用来把“客户端本地已有多少字节”发回服务端。
         file_packet_t client_file_packet;
@@ -166,6 +184,7 @@ void process_command(int sock_fd, const char *input) {
         // 把续传位置发给服务端。
         if (send_file_packet(sock_fd, &client_file_packet) == -1) {
             printf("发送续传位置失败\n");
+            LOG_WARN("发送下载断点位置失败，文件=%s", arg);
             return;
         }
 
@@ -173,6 +192,7 @@ void process_command(int sock_fd, const char *input) {
         // 这里直接结束当前命令即可。
         if (local_file_exists && request_offset == server_file_packet.file_size) {
             printf("文件已存在且完整，无需下载。\n");
+            LOG_INFO("下载已跳过，本地文件完整，文件=%s，大小=%lld", arg, (long long)server_file_packet.file_size);
             return;
         }
 
@@ -183,6 +203,7 @@ void process_command(int sock_fd, const char *input) {
         int fd = open(arg, O_WRONLY | O_CREAT, 0666);
         if (fd == -1) {
             perror("创建文件失败");
+            LOG_ERROR("创建本地文件失败，文件=%s，错误码=%d", arg, errno);
             return;
         }
 
@@ -191,6 +212,7 @@ void process_command(int sock_fd, const char *input) {
         if (request_offset == 0) {
             if (ftruncate(fd, 0) == -1) {
                 perror("清空旧文件失败");
+                LOG_ERROR("截断本地文件失败，文件=%s，错误码=%d", arg, errno);
                 close(fd);
                 return;
             }
@@ -200,6 +222,10 @@ void process_command(int sock_fd, const char *input) {
         // 这样后面收到的新数据就会直接写到断点之后。
         if (lseek(fd, request_offset, SEEK_SET) == -1) {
             perror("移动文件指针失败");
+            LOG_ERROR("定位本地文件失败，文件=%s，偏移=%lld，错误码=%d",
+                      arg,
+                      (long long)request_offset,
+                      errno);
             close(fd);
             return;
         }
@@ -223,6 +249,10 @@ void process_command(int sock_fd, const char *input) {
             // recv_full 的意思是：这一轮要求必须收满 once 个字节。
             if (recv_full(sock_fd, buf, once) <= 0) {
                 printf("下载中断，已经保留当前进度。\n");
+                LOG_WARN("下载中断，文件=%s，已保存=%lld，总大小=%lld",
+                         arg,
+                         (long long)(server_file_packet.file_size - remaining),
+                         (long long)server_file_packet.file_size);
                 close(fd);
                 return;
             }
@@ -230,6 +260,7 @@ void process_command(int sock_fd, const char *input) {
             // 把本轮收到的数据完整写进本地文件。
             if (write_file_full(fd, buf, once) == -1) {
                 perror("写入本地文件失败");
+                LOG_ERROR("写入本地文件失败，文件=%s，错误码=%d", arg, errno);
                 close(fd);
                 return;
             }
@@ -243,6 +274,7 @@ void process_command(int sock_fd, const char *input) {
 
         // 打印下载成功信息。
         printf("下载成功: %s (%ld 字节)\n", arg, (long)server_file_packet.file_size);
+        LOG_INFO("下载成功，文件=%s，大小=%lld", arg, (long long)server_file_packet.file_size);
         return;
     }
 
@@ -250,11 +282,13 @@ void process_command(int sock_fd, const char *input) {
     // 第二类：处理 puts 上传命令
     // ------------------------------
     if (cmd_type == CMD_TYPE_PUTS) {
+        LOG_INFO("客户端请求上传文件，文件=%s", arg);
         // 上传前先打开本地文件。
         // 如果本地文件都打不开，后面根本没必要再和服务端继续握手。
         int fd = open(arg, O_RDONLY);
         if (fd == -1) {
             perror("打开文件失败");
+            LOG_WARN("打开本地上传文件失败，文件=%s，错误码=%d", arg, errno);
             return;
         }
 
@@ -262,6 +296,7 @@ void process_command(int sock_fd, const char *input) {
         struct stat st;
         if (fstat(fd, &st) == -1) {
             perror("获取文件大小失败");
+            LOG_ERROR("读取本地上传文件信息失败，文件=%s，错误码=%d", arg, errno);
             close(fd);
             return;
         }
@@ -271,6 +306,7 @@ void process_command(int sock_fd, const char *input) {
         init_command_packet(&cmd_packet, cmd_type, arg);
         if (send_command_packet(sock_fd, &cmd_packet) == -1) {
             printf("发送命令失败\n");
+            LOG_ERROR("发送上传命令失败，文件=%s", arg);
             close(fd);
             return;
         }
@@ -281,6 +317,7 @@ void process_command(int sock_fd, const char *input) {
 
         if (send_file_packet(sock_fd, &client_file_packet) == -1) {
             printf("发送文件信息失败\n");
+            LOG_WARN("发送上传文件信息失败，文件=%s", arg);
             close(fd);
             return;
         }
@@ -289,6 +326,7 @@ void process_command(int sock_fd, const char *input) {
         file_packet_t server_file_packet;
         if (recv_file_packet(sock_fd, &server_file_packet) <= 0) {
             printf("接收服务端断点信息失败\n");
+            LOG_WARN("接收上传断点位置失败，文件=%s", arg);
             close(fd);
             return;
         }
@@ -297,10 +335,18 @@ void process_command(int sock_fd, const char *input) {
         if (server_file_packet.offset > st.st_size) {
             server_file_packet.offset = 0;
         }
+        LOG_DEBUG("上传断点信息，文件=%s，本地大小=%lld，偏移=%lld",
+                  arg,
+                  (long long)st.st_size,
+                  (long long)server_file_packet.offset);
 
         // 把本地文件读位置移动到服务端要求的断点。
         if (lseek(fd, server_file_packet.offset, SEEK_SET) == -1) {
             perror("移动文件指针失败");
+            LOG_ERROR("定位本地上传文件失败，文件=%s，偏移=%lld，错误码=%d",
+                      arg,
+                      (long long)server_file_packet.offset,
+                      errno);
             close(fd);
             return;
         }
@@ -331,6 +377,10 @@ void process_command(int sock_fd, const char *input) {
             // 这里必须用 send_full，不能只调一次 send。
             if (send_full(sock_fd, buf, nread) == -1) {
                 printf("上传中断，已经发送的内容由服务端自己保留。\n");
+                LOG_WARN("上传中断，文件=%s，已发送=%lld，总大小=%lld",
+                         arg,
+                         (long long)(st.st_size - remaining),
+                         (long long)st.st_size);
                 close(fd);
                 return;
             }
@@ -344,6 +394,7 @@ void process_command(int sock_fd, const char *input) {
 
         // 再接收服务端的最终提示，例如“上传完成”。
         recv_server_reply(sock_fd);
+        LOG_INFO("上传成功，文件=%s", arg);
         return;
     }
 
@@ -357,6 +408,7 @@ void process_command(int sock_fd, const char *input) {
 
     if (send_command_packet(sock_fd, &cmd_packet) == -1) {
         printf("发送命令失败\n");
+        LOG_WARN("发送命令失败，输入=%s", input);
         return;
     }
 

@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <pthread.h>
+#include <errno.h>
 #include "queue.h"
 #include "thread_pool.h"
 #include "worker.h"
@@ -16,6 +17,7 @@
 #include "config.h"
 #include "handle.h"
 #include "error_check.h"
+#include "log.h"
 
 
 // pipe_fd[0] 用来读，pipe_fd[1] 用来写。
@@ -27,63 +29,102 @@ int pipe_fd[2];
 // 参数 num：信号编号，这里通常是 SIGINT。
 // 返回值：无。
 void func(int num){
-    // 打印收到的信号编号，方便调试。
-    printf("num=%d\n",num);
-
+    (void)num;
     // 往管道里写一个字节，通知子进程该退出了。
     write(pipe_fd[1],"1",1);
 }
 
-// 函数作用：从配置文件中读取服务端要监听的 IP 和端口。
-// 参数 ip：输出参数，用来保存 IP。
-// 参数 port：输出参数，用来保存端口。
-// 返回值：无。
-void load_config(char *ip, char *port) {
-    // 读取 ip。
-    get_target("ip", ip);
-    printf("ip=%s\n", ip);
+static void load_value_or_default(const char *key, char *value, size_t value_sz, const char *default_value) {
+    char tmp[256] = {0};
 
-    // 读取 port。
-    get_target("port", port);
-    printf("port=%s\n", port);
+    if (get_target((char *)key, tmp) == 0) {
+        snprintf(value, value_sz, "%s", tmp);
+        return;
+    }
+
+    snprintf(value, value_sz, "%s", default_value);
+}
+
+static void init_log_with_fallback(const char *level_str, const char *log_file) {
+    const char *real_log_file = log_file;
+
+    if (log_file != NULL && strncmp(log_file, "../", 3) == 0) {
+        if (access("../log", F_OK) == 0) {
+            real_log_file = log_file;
+        } else if (access("./log", F_OK) == 0) {
+            real_log_file = log_file + 3;
+        }
+    }
+
+    if (init_log(level_str, real_log_file) == 0) {
+        return;
+    }
+
+    init_log(level_str, NULL);
 }
 
 // 函数作用：服务端主函数。
 // 参数：无。
 // 返回值：正常结束返回 0。
 int main(){
-    // 先初始化日志。
-    // 否则 socket/bind/accept 等调用一旦失败，ERROR_CHECK 无法安全打印日志。
-    init_log("INFO", NULL);
-
     // 忽略 SIGPIPE。
     // 这样当对端断开连接后，send 不会直接把进程打死。
     signal(SIGPIPE, SIG_IGN);
 
     // ip 和 port 用来保存配置文件中的监听地址。
     char ip[64] = {0}; 
-    char port[64] = {0};  
+    char port[64] = {0};
+    char log_level[32] = {0};
+    char log_file[256] = {0};
+
+    // 先用默认日志路径初始化，确保配置加载阶段的日志也能落盘。
+    init_log_with_fallback("INFO", "../log/server.log");
 
     // 加载配置。
-    load_config(ip, port);
+    load_value_or_default("ip", ip, sizeof(ip), "127.0.0.1");
+    load_value_or_default("port", port, sizeof(port), "9090");
+    load_value_or_default("log", log_level, sizeof(log_level), "INFO");
+    load_value_or_default("server_log", log_file, sizeof(log_file), "../log/server.log");
+
+    // 先初始化日志。
+    // 否则 socket/bind/accept 等调用一旦失败，ERROR_CHECK 无法安全打印日志。
+    init_log_with_fallback(log_level, log_file);
+    LOG_INFO("服务端配置加载完成，地址=%s，端口=%s", ip, port);
 
     // 创建匿名管道，用于父进程通知子进程退出。
-    pipe(pipe_fd);
+    if (pipe(pipe_fd) != 0) {
+        LOG_ERROR("创建管道失败: %s", strerror(errno));
+        close_log();
+        return 1;
+    }
     
     // fork 之后会分成父子两个进程。
     // 父进程专门负责监听 Ctrl+C。
     // 子进程负责真正跑服务器。
-    if(fork() != 0){
+    pid_t pid = fork();
+    if (pid < 0) {
+        LOG_ERROR("创建子进程失败: %s", strerror(errno));
+        close(pipe_fd[0]);
+        close(pipe_fd[1]);
+        close_log();
+        return 1;
+    }
+
+    if(pid != 0){
         // 父进程收到 SIGINT 后，就执行上面的 func。
         signal(SIGINT, func);
+        LOG_INFO("服务端父进程等待子进程退出，子进程pid=%d", (int)pid);
 
         // 父进程等待子进程结束。
         wait(NULL);
+        LOG_INFO("服务端父进程退出");
         exit(0);
     }
 
     // 子进程把自己放进新的进程组，避免和父进程完全绑死在一起。
-    setpgid(0, 0);
+    if (setpgid(0, 0) != 0) {
+        LOG_WARN("设置进程组失败 errno=%d", errno);
+    }
 
     // listen_fd 是服务端监听新连接用的 socket。
     int listen_fd = 0;
@@ -95,13 +136,14 @@ int main(){
 
     // 创建 epoll 实例。
     int epfd = epoll_create(1);
-    ERROR_CHECK(epfd, -1, "epoll_create");
+    ERROR_CHECK(epfd, -1, "创建 epoll");
 
     // 监听 listen_fd：表示有新客户端到来。
     add_epoll_fd(epfd, listen_fd);
 
     // 监听 pipe_fd[0]：表示父进程通知子进程退出。
     add_epoll_fd(epfd, pipe_fd[0]);
+    LOG_INFO("服务端启动成功，地址=%s，端口=%s", ip, port);
 
     // 主循环，持续等待 epoll 事件。
     while(1){
@@ -110,8 +152,12 @@ int main(){
 
         // epoll_wait 会阻塞，直到至少有一个 fd 就绪。
         int nready = epoll_wait(epfd, lst, 10, -1);
-        ERROR_CHECK(nready, -1, "epoll_wait");
-        printf("nready=%d\n", nready);
+        if (nready == -1) {
+            if (errno == EINTR) {
+                continue;
+            }
+            ERROR_CHECK(nready, -1, "等待 epoll 事件");
+        }
         
         // 依次处理本轮所有就绪事件。
         for(int idx = 0; idx < nready; idx++){
@@ -122,7 +168,7 @@ int main(){
                 // 读走管道中的退出通知字节。
                 char buf[10];
                 read(fd, buf, sizeof(buf));
-                printf("子进程收到父进程的终止信号\n");
+                LOG_INFO("服务端收到退出信号");
 
                 // 修改线程池共享数据前，先加锁。
                 pthread_mutex_lock(&pool.lock);
@@ -176,7 +222,11 @@ int main(){
             if(fd == listen_fd){
                 // 有新客户端到来时，accept 会返回一个新的连接 fd。
                 int conn_fd = accept(listen_fd, NULL, NULL);
-                ERROR_CHECK(conn_fd, -1, "accept");
+                if (conn_fd == -1) {
+                    LOG_WARN("接收客户端连接失败，错误码=%d", errno);
+                    continue;
+                }
+                LOG_INFO("接收到客户端连接，客户端fd=%d", conn_fd);
 
                 // 把新连接放进线程池任务队列。
                 pthread_mutex_lock(&pool.lock);

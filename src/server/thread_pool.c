@@ -5,6 +5,7 @@
 #include "thread_pool.h"
 #include "worker.h"
 #include "error_check.h"
+#include "log.h"
 
 
 // 函数作用：初始化线程池。
@@ -39,7 +40,7 @@ void init_thread_pool(thread_pool_t* pool,int num){
 
     // 只要有一个 malloc 失败，就直接退出。
     if(pool->thread_id_arr==NULL || pool->worker_arg_arr==NULL || pool->busy_fds==NULL){
-        perror("malloc");
+        LOG_ERROR("线程池内存分配失败");
         exit(1);
     }
 
@@ -59,8 +60,10 @@ void init_thread_pool(thread_pool_t* pool,int num){
         // pthread_create 成功返回 0，失败返回正的错误码。
         // 所以这里不能再按 -1 判断。
         int ret=pthread_create(&pool->thread_id_arr[idx],NULL,thread_func,(void*)&pool->worker_arg_arr[idx]);
-        THREAD_ERROR_CHECK(ret,"pthread_create");
+        THREAD_ERROR_CHECK(ret,"创建工作线程");
     }
+
+    LOG_INFO("线程池初始化完成，工作线程数=%d", num);
 
 }
 

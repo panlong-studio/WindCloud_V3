@@ -18,7 +18,7 @@ void add_epoll_fd(int epfd,int fd){
 
     // EPOLL_CTL_ADD 表示新增监听。
     int ret=epoll_ctl(epfd,EPOLL_CTL_ADD,fd,&evt);
-    ERROR_CHECK(ret,-1,"epoll_ctl add");
+    ERROR_CHECK(ret,-1,"添加 epoll 监听");
 }
 
 // 函数作用：把一个 fd 从 epoll 监听集合中移除。
@@ -34,5 +34,5 @@ void del_epoll_fd(int epfd,int fd){
 
     // EPOLL_CTL_DEL 表示删除监听。
     int ret=epoll_ctl(epfd,EPOLL_CTL_DEL,fd,&evt);
-    ERROR_CHECK(ret,-1,"epoll_ctl del");
+    ERROR_CHECK(ret,-1,"删除 epoll 监听");
 }

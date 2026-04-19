@@ -6,6 +6,7 @@
 #include "thread_pool.h"
 #include "queue.h"
 #include "handle.h"
+#include "log.h"
 
 // 函数作用：线程池里的工作线程入口函数。
 // 参数 arg：实际上传入的是 worker_arg_t*，里面保存了线程池指针和线程编号。
@@ -51,7 +52,7 @@ void* thread_func(void *arg) {
         pthread_mutex_unlock(&pool->lock);
 
         // 打印调试信息，方便观察哪个线程在工作。
-        printf("线程 %lu 开始处理客户端 fd=%d\n", pthread_self(), client_fd);
+        LOG_INFO("工作线程开始处理客户端，线程=%lu，客户端fd=%d", (unsigned long)pthread_self(), client_fd);
 
         // 真正处理这个客户端的所有命令。
         handle_request(client_fd);  // 你的处理函数
@@ -70,8 +71,9 @@ void* thread_func(void *arg) {
         pthread_mutex_unlock(&pool->lock);
 
         // 打印线程处理完成的信息。
-        printf("线程 %lu 处理完成\n", pthread_self());
+        LOG_INFO("工作线程处理完成，线程=%lu，客户端fd=%d", (unsigned long)pthread_self(), client_fd);
     }
-    
+
+    LOG_INFO("工作线程退出，线程=%lu", (unsigned long)pthread_self());
     return NULL;
 }

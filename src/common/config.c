@@ -1,7 +1,8 @@
-#include <strings.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include "config.h"
+#include "log.h"
 
 
 // 函数作用：从 config/config.ini 中读取指定 key 对应的 value。
@@ -9,12 +10,24 @@
 // 参数 value：输出参数，用来保存查找到的值。
 // 返回值：找到返回 0，找不到或打开文件失败返回 -1。
 int get_target(char *key, char *value) {
+    static const char *config_paths[] = {
+        "../config/config.ini",
+        "./config/config.ini"
+    };
+    FILE *file = NULL;
+
     // 以只读方式打开配置文件。
-    FILE *file = fopen("./config/config.ini", "r");
+    for (size_t idx = 0; idx < sizeof(config_paths) / sizeof(config_paths[0]); ++idx) {
+        file = fopen(config_paths[idx], "r");
+        if (file != NULL) {
+            break;
+        }
+    }
+
     if (file == NULL){
-        printf("config.ini is NULL\n");
+        LOG_WARN("未找到 config.ini 配置文件");
         return -1;
-    } 
+    }
 
     // line 用来保存每次读到的一行文本。
     char line[100];
@@ -44,6 +57,7 @@ int get_target(char *key, char *value) {
             if (line_value != NULL) {
                 // 把找到的 value 拷贝给调用者。
                 strcpy(value, line_value);
+                LOG_INFO("配置加载成功 key=%s value=%s", key, value);
 
                 // 找到目标后就可以关文件并返回。
                 fclose(file);
@@ -54,5 +68,6 @@ int get_target(char *key, char *value) {
 
     // 整个文件都扫完了，还没找到目标 key，也要记得关文件。
     fclose(file);
+    LOG_WARN("配置项不存在 key=%s", key);
     return -1;
 }
