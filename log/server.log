@@ -1,8 +1,140 @@
-[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
-[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
-[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=INFO
-[2026-04-19 19:18:31] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
-[2026-04-19 19:18:31] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
-[2026-04-19 19:18:31] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=3
-[2026-04-19 19:18:31] [ERROR] [src/server/server_socket.c:21 init_socket] 创建服务端监听套接字失败，错误码=1
-[2026-04-19 19:18:31] [INFO] [src/server/server.c:120 main] 服务端父进程退出
+[2026-04-19 20:47:23] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-19 20:47:23] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-19 20:47:23] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=INFO
+[2026-04-19 20:47:23] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-19 20:47:23] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-19 20:47:23] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=7050
+[2026-04-19 20:47:23] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=7
+[2026-04-19 20:47:23] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-19 20:47:23] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=7
+[2026-04-19 20:47:23] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-19 20:47:23] [INFO] [src/server/server.c:146 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-19 20:47:29] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-19 20:47:29] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=135568535053888，客户端fd=9
+[2026-04-19 20:47:33] [INFO] [src/server/handle.c:341 handle_ls] 列目录成功，客户端fd=9，路径=/
+[2026-04-19 20:47:48] [WARN] [src/server/handle.c:496 handle_gets] 下载发送中断，客户端fd=9，路径=../test/big_file.txt，已发送=305213453，总大小=421429351，错误码=32
+[2026-04-19 20:47:48] [WARN] [src/server/handle.c:522 handle_gets] 下载未完成，客户端fd=9，路径=../test/big_file.txt，已发送=305213453，总大小=421429351
+[2026-04-19 20:47:48] [INFO] [src/server/handle.c:178 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-19 20:47:48] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=135568535053888，客户端fd=9
+[2026-04-19 20:47:51] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-19 20:47:51] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=135568526661184，客户端fd=9
+[2026-04-19 20:48:29] [INFO] [src/server/handle.c:517 handle_gets] 下载完成，客户端fd=9，路径=../test/big_file.txt，大小=421429351
+[2026-04-19 20:49:23] [INFO] [src/server/handle.c:178 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-19 20:49:23] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=135568526661184，客户端fd=9
+[2026-04-19 20:49:45] [INFO] [src/server/server.c:171 main] 服务端收到退出信号
+[2026-04-19 20:49:45] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=135568526661184
+[2026-04-19 20:49:45] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=135568535053888
+[2026-04-19 20:49:45] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=135568543446592
+[2026-04-19 20:49:45] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=135568518268480
+[2026-04-19 20:49:45] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=135568509875776
+[2026-04-19 20:49:45] [INFO] [src/server/server.c:120 main] 服务端父进程退出
+[2026-04-19 20:50:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-19 20:50:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-19 20:50:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=INFO
+[2026-04-19 20:50:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-19 20:50:32] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-19 20:50:32] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=7539
+[2026-04-19 20:50:32] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=7
+[2026-04-19 20:50:32] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-19 20:50:32] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=7
+[2026-04-19 20:50:32] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-19 20:50:32] [INFO] [src/server/server.c:146 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-19 20:50:43] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-19 20:50:43] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=127860610168384，客户端fd=9
+[2026-04-19 20:50:46] [INFO] [src/server/handle.c:341 handle_ls] 列目录成功，客户端fd=9，路径=/
+[2026-04-19 20:50:56] [WARN] [src/server/handle.c:496 handle_gets] 下载发送中断，客户端fd=9，路径=../test/big_file.txt，已发送=349223118，总大小=421429351，错误码=32
+[2026-04-19 20:50:56] [WARN] [src/server/handle.c:522 handle_gets] 下载未完成，客户端fd=9，路径=../test/big_file.txt，已发送=349223118，总大小=421429351
+[2026-04-19 20:50:56] [INFO] [src/server/handle.c:178 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-19 20:50:56] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=127860610168384，客户端fd=9
+[2026-04-19 20:51:35] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-19 20:51:35] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=127860593382976，客户端fd=9
+[2026-04-19 20:52:09] [INFO] [src/server/handle.c:517 handle_gets] 下载完成，客户端fd=9，路径=../test/big_file.txt，大小=421429351
+[2026-04-19 20:52:23] [INFO] [src/server/handle.c:178 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-19 20:52:23] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=127860593382976，客户端fd=9
+[2026-04-19 20:53:10] [INFO] [src/server/server.c:171 main] 服务端收到退出信号
+[2026-04-19 20:53:10] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127860593382976
+[2026-04-19 20:53:10] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127860584990272
+[2026-04-19 20:53:10] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127860601775680
+[2026-04-19 20:53:10] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127860576597568
+[2026-04-19 20:53:10] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127860610168384
+[2026-04-19 20:53:10] [INFO] [src/server/server.c:120 main] 服务端父进程退出
+[2026-04-19 20:54:21] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-19 20:54:21] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-19 20:54:21] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-19 20:54:21] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-19 20:54:21] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-19 20:54:21] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=8016
+[2026-04-19 20:54:21] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=7
+[2026-04-19 20:54:21] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-19 20:54:21] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=7
+[2026-04-19 20:54:21] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-19 20:54:21] [INFO] [src/server/server.c:146 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-19 20:54:28] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-19 20:54:28] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=139944261580352，客户端fd=9
+[2026-04-19 20:54:31] [DEBUG] [src/server/handle.c:184 handle_request] 收到客户端命令，客户端fd=9，命令类型=3，数据=
+[2026-04-19 20:54:31] [INFO] [src/server/handle.c:341 handle_ls] 列目录成功，客户端fd=9，路径=/
+[2026-04-19 20:54:31] [DEBUG] [src/server/handle.c:47 send_msg] 响应发送成功，客户端fd=9，消息=tmp_file.txt big_file.txt tmp demo 
+[2026-04-19 20:54:56] [DEBUG] [src/server/handle.c:184 handle_request] 收到客户端命令，客户端fd=9，命令类型=2，数据=tmp
+[2026-04-19 20:54:56] [INFO] [src/server/handle.c:274 handle_cd] 切换目录成功，客户端fd=9，当前路径=/tmp
+[2026-04-19 20:54:56] [DEBUG] [src/server/handle.c:47 send_msg] 响应发送成功，客户端fd=9，消息=进入目录成功
+[2026-04-19 20:56:34] [INFO] [src/server/handle.c:178 handle_request] 客户端连接断开，客户端fd=9，当前路径=/tmp
+[2026-04-19 20:56:34] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=139944261580352，客户端fd=9
+[2026-04-19 20:56:47] [INFO] [src/server/server.c:171 main] 服务端收到退出信号
+[2026-04-19 20:56:47] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=139944261580352
+[2026-04-19 20:56:47] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=139944228009536
+[2026-04-19 20:56:47] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=139944244794944
+[2026-04-19 20:56:47] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=139944253187648
+[2026-04-19 20:56:47] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=139944236402240
+[2026-04-19 20:56:47] [INFO] [src/server/server.c:120 main] 服务端父进程退出
+[2026-04-20 11:21:26] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 11:21:26] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-20 11:21:26] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-20 11:21:26] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-20 11:21:26] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-20 11:21:26] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=8607
+[2026-04-20 11:21:26] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=7
+[2026-04-20 11:21:26] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-20 11:21:26] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=7
+[2026-04-20 11:21:26] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-20 11:21:26] [INFO] [src/server/server.c:146 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-20 11:21:32] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-20 11:21:32] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=129127162046016，客户端fd=9
+[2026-04-20 11:21:35] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=3，数据=
+[2026-04-20 11:21:35] [INFO] [src/server/file_cmds.c:89 handle_ls] 列目录成功，客户端fd=9，路径=/
+[2026-04-20 11:21:35] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=tmp_file.txt big_file.txt tmp demo 
+[2026-04-20 11:21:41] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=1，数据=
+[2026-04-20 11:21:41] [INFO] [src/server/file_cmds.c:94 handle_pwd] 处理显示当前路径命令，客户端fd=9，当前路径=/
+[2026-04-20 11:21:41] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=/
+[2026-04-20 11:21:48] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=2，数据=tmp
+[2026-04-20 11:21:48] [INFO] [src/server/file_cmds.c:47 handle_cd] 切换目录成功，客户端fd=9，当前路径=/tmp
+[2026-04-20 11:21:48] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=进入目录成功
+[2026-04-20 11:21:50] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=3，数据=
+[2026-04-20 11:21:50] [INFO] [src/server/file_cmds.c:84 handle_ls] 目录为空，客户端fd=9，路径=/tmp
+[2026-04-20 11:21:50] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=当前目录为空
+[2026-04-20 11:21:54] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=2，数据=..
+[2026-04-20 11:21:54] [INFO] [src/server/file_cmds.c:21 handle_cd] 客户端切换回根目录，客户端fd=9
+[2026-04-20 11:21:54] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=已返回根目录
+[2026-04-20 11:22:22] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=4，数据=tmp_file.txt
+[2026-04-20 11:22:22] [DEBUG] [src/server/file_transfer.c:67 handle_gets] 下载断点信息，客户端fd=9，路径=../test/tmp_file.txt，偏移=0，大小=7
+[2026-04-20 11:22:22] [INFO] [src/server/file_transfer.c:84 handle_gets] 下载完成，客户端fd=9，路径=../test/tmp_file.txt，大小=7
+[2026-04-20 11:22:41] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=5，数据=big_file.txt
+[2026-04-20 11:22:41] [INFO] [src/server/file_transfer.c:132 handle_puts] 上传已跳过，服务端文件完整，客户端fd=9
+[2026-04-20 11:22:41] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=服务器端文件已完整存在，无需续传。
+[2026-04-20 11:22:54] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=4，数据=big_file.txt
+[2026-04-20 11:22:54] [DEBUG] [src/server/file_transfer.c:67 handle_gets] 下载断点信息，客户端fd=9，路径=../test/big_file.txt，偏移=421429351，大小=421429351
+[2026-04-20 11:22:54] [INFO] [src/server/file_transfer.c:84 handle_gets] 下载完成，客户端fd=9，路径=../test/big_file.txt，大小=421429351
+[2026-04-20 11:23:08] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=7，数据=tmp
+[2026-04-20 11:23:08] [WARN] [src/server/file_cmds.c:127 handle_mkdir] 创建目录失败，客户端fd=9，路径=../test/tmp，错误码=17
+[2026-04-20 11:23:08] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=文件夹创建失败
+[2026-04-20 11:23:13] [DEBUG] [src/server/session.c:39 handle_request] 收到客户端命令，客户端fd=9，命令类型=7，数据=temp
+[2026-04-20 11:23:13] [INFO] [src/server/file_cmds.c:124 handle_mkdir] 创建目录成功，客户端fd=9，路径=../test/temp
+[2026-04-20 11:23:13] [DEBUG] [src/server/session.c:17 send_msg] 响应发送成功，客户端fd=9，消息=创建文件夹成功
+[2026-04-20 11:23:24] [INFO] [src/server/session.c:34 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-20 11:23:24] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=129127162046016，客户端fd=9
+[2026-04-20 11:23:34] [INFO] [src/server/server.c:171 main] 服务端收到退出信号
+[2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127136867904
+[2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127153653312
+[2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127170438720
+[2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127162046016
+[2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127145260608
+[2026-04-20 11:23:34] [INFO] [src/server/server.c:120 main] 服务端父进程退出
