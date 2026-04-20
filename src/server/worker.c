@@ -5,8 +5,13 @@
 #include "worker.h"
 #include "thread_pool.h"
 #include "queue.h"
-#include "handle.h"
 #include "log.h"
+#include "protocol.h"
+#include "session.h"
+#include "file_cmds.h"
+#include "file_transfer.h"
+#include "path_utils.h"
+#include "sha256_utils.h"
 
 // 函数作用：线程池里的工作线程入口函数。
 // 参数 arg：实际上传入的是 worker_arg_t*，里面保存了线程池指针和线程编号。
