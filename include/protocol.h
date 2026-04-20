@@ -48,7 +48,7 @@ typedef struct {
     off_t file_size;               // 文件总大小
     off_t offset;                  // 断点续传位置
     char file_name[FILE_NAME_LEN]; // 文件名
-    char hash[33];                 // 文件内容的 MD5 哈希值，32 字节 + 1 字节 '\0'
+    char hash[65];                 // 文件内容的 sha256 哈希值，64 字节 + 1 字节 '\0'
 } file_packet_t;
 
 // 函数作用：把命令字符串转换成命令枚举值。
@@ -85,8 +85,9 @@ void init_command_packet(command_packet_t *packet, cmd_type_t type, const char *
 // 参数 file_name：文件名，可以传 NULL。
 // 参数 file_size：文件总大小。
 // 参数 offset：断点续传位置。
+// 参数 hash：文件的 SHA256 哈希值，可以传 NULL。
 // 返回值：无。
-void init_file_packet(file_packet_t *packet, cmd_type_t type, const char *file_name, off_t file_size, off_t offset);
+void init_file_packet(file_packet_t *packet, cmd_type_t type, const char *file_name, off_t file_size, off_t offset, const char *hash);
 
 // 函数作用：发送一个完整的普通命令结构体。
 // 参数 fd：socket 文件描述符。

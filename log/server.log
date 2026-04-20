@@ -138,3 +138,55 @@
 [2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127162046016
 [2026-04-20 11:23:34] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=129127145260608
 [2026-04-20 11:23:34] [INFO] [src/server/server.c:120 main] 服务端父进程退出
+[2026-04-20 21:44:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 21:44:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-20 21:44:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-20 21:44:32] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-20 21:44:32] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-20 21:44:32] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=20771
+[2026-04-20 21:44:32] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=7
+[2026-04-20 21:44:32] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-20 21:44:32] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=7
+[2026-04-20 21:44:32] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-20 21:44:32] [INFO] [src/server/server.c:146 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-20 21:44:37] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-20 21:44:37] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=127273659266624，客户端fd=9
+[2026-04-20 21:45:07] [DEBUG] [src/server/session.c:41 handle_request] 收到客户端命令，客户端fd=9，命令类型=9，数据=root/123456
+[2026-04-20 21:45:07] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 21:45:07] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_user
+[2026-04-20 21:45:07] [DEBUG] [src/server/session.c:18 send_msg] 响应发送成功，客户端fd=9，消息=error: config item 'db_user' missing
+[2026-04-20 21:48:25] [INFO] [src/server/session.c:36 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-20 21:48:25] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=127273659266624，客户端fd=9
+[2026-04-20 21:48:27] [INFO] [src/server/server.c:171 main] 服务端收到退出信号
+[2026-04-20 21:48:27] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127273650873920
+[2026-04-20 21:48:27] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127273642481216
+[2026-04-20 21:48:27] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127273634088512
+[2026-04-20 21:48:27] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127273659266624
+[2026-04-20 21:48:27] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=127273625695808
+[2026-04-20 21:48:27] [INFO] [src/server/server.c:120 main] 服务端父进程退出
+[2026-04-20 21:50:39] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 21:50:39] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-20 21:50:39] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-20 21:50:39] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-20 21:50:39] [INFO] [src/server/server.c:92 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-20 21:50:39] [INFO] [src/server/server.c:116 main] 服务端父进程等待子进程退出，子进程pid=21395
+[2026-04-20 21:50:39] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=7
+[2026-04-20 21:50:39] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-20 21:50:39] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=7
+[2026-04-20 21:50:39] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-20 21:50:39] [INFO] [src/server/server.c:146 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-20 21:50:43] [INFO] [src/server/server.c:229 main] 接收到客户端连接，客户端fd=9
+[2026-04-20 21:50:43] [INFO] [src/server/worker.c:55 thread_func] 工作线程开始处理客户端，线程=126620058777152，客户端fd=9
+[2026-04-20 21:50:56] [DEBUG] [src/server/session.c:41 handle_request] 收到客户端命令，客户端fd=9，命令类型=9，数据=root/123
+[2026-04-20 21:50:56] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 21:50:56] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_user
+[2026-04-20 21:50:56] [DEBUG] [src/server/session.c:18 send_msg] 响应发送成功，客户端fd=9，消息=error: config item 'db_user' missing
+[2026-04-20 21:51:21] [INFO] [src/server/server.c:171 main] 服务端收到退出信号
+[2026-04-20 21:51:21] [INFO] [src/server/session.c:36 handle_request] 客户端连接断开，客户端fd=9，当前路径=/
+[2026-04-20 21:51:21] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=126620050384448
+[2026-04-20 21:51:21] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=126620025206336
+[2026-04-20 21:51:21] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=126620041991744
+[2026-04-20 21:51:21] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=126620033599040
+[2026-04-20 21:51:21] [INFO] [src/server/worker.c:74 thread_func] 工作线程处理完成，线程=126620058777152，客户端fd=9
+[2026-04-20 21:51:21] [INFO] [src/server/worker.c:77 thread_func] 工作线程退出，线程=126620058777152
+[2026-04-20 21:51:21] [INFO] [src/server/server.c:120 main] 服务端父进程退出
