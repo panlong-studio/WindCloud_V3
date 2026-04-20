@@ -24,7 +24,9 @@ typedef enum {
     CMD_TYPE_PUTS,        // 上传文件
     CMD_TYPE_RM,          // 删除文件
     CMD_TYPE_MKDIR,       // 创建目录
-    CMD_TYPE_REPLY        // 服务端返回的普通文本响应
+    CMD_TYPE_REPLY,        // 服务端返回的普通文本响应
+    CMD_TYPE_LOGIN,        // 登录命令
+    CMD_TYPE_REGISTER,     // 注册命令
 } cmd_type_t;
 
 // 普通命令结构体。
@@ -46,6 +48,7 @@ typedef struct {
     off_t file_size;               // 文件总大小
     off_t offset;                  // 断点续传位置
     char file_name[FILE_NAME_LEN]; // 文件名
+    char hash[33];                 // 文件内容的 MD5 哈希值，32 字节 + 1 字节 '\0'
 } file_packet_t;
 
 // 函数作用：把命令字符串转换成命令枚举值。
