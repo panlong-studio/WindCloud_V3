@@ -69,6 +69,34 @@ void handle_login(int client_fd, const char *data, int *user_id) {
     char *user_name = strtok((char *)data, "/");
     char *user_passwd = strtok(NULL, "\r\n\t");
 
+    char db_host[64], db_user[64], db_passwd[64], user_db_name[64];
+
+    // --- 1. 获取配置并进行错误检查 ---
+    // 如果 get_target 返回 -1，说明配置文件里根本没写这个项，直接返回错误给客户端
+    if (get_target("ip", db_host) != 0) {
+        send_msg(client_fd, "error: config item 'ip' missing");
+        *user_id = -1;
+        return;
+    }
+
+    if (get_target("db_user", db_user) != 0) {
+        send_msg(client_fd, "error: config item 'db_user' missing");
+        *user_id = -1;
+        return;
+    }
+
+    if (get_target("db_passwd", db_passwd) != 0) {
+        // 密码允许为空，但 key 必须存在
+        strcpy(db_passwd, ""); 
+    }
+
+    if (get_target("user_db_name", user_db_name) != 0) {
+        send_msg(client_fd, "error: config item 'user_db_name' missing");
+        *user_id = -1;
+        return;
+    }
+
+
     if (!user_name || !user_passwd) {
         send_msg(client_fd, "error: username or password missing");
         *user_id = -1;
@@ -77,7 +105,7 @@ void handle_login(int client_fd, const char *data, int *user_id) {
 
     // 2. 数据库连接初始化
     MYSQL *conn = mysql_init(NULL);
-    if (!mysql_real_connect(conn, "localhost", "root", "", "testdb", 0, NULL, 0)) {
+    if (!mysql_real_connect(conn, db_host, db_user, db_passwd, user_db_name, 0, NULL, 0)) {
         send_msg(client_fd, "error: database connection failed");
         mysql_close(conn);
         *user_id = -1;
@@ -125,12 +153,12 @@ void handle_login(int client_fd, const char *data, int *user_id) {
         send_msg(client_fd, msg);
     } else {
         send_msg(client_fd, "error: invalid username or password");
-        *user_id = -1;
     }
     
     // 6. 释放资源
-    mysql_free_result(res);
-    mysql_close(conn);
+// 放在函数最末尾，确保无论登录成功还是失败，只要 res 和 conn 存在就释放
+if (res) mysql_free_result(res);
+if (conn) mysql_close(conn);
 }
 
 /**
@@ -146,6 +174,33 @@ void handle_register(int client_fd, const char *data, int *user_id) {
         return;
     }
     
+        char db_host[64], db_user[64], db_passwd[64], user_db_name[64];
+
+    // 获取配置并进行错误检查 
+    // 如果 get_target 返回 -1，说明配置文件里根本没写这个项，直接返回错误给客户端
+    if (get_target("ip", db_host) != 0) {
+        send_msg(client_fd, "error: config item 'ip' missing");
+        *user_id = -1;
+        return;
+    }
+
+    if (get_target("db_user", db_user) != 0) {
+        send_msg(client_fd, "error: config item 'db_user' missing");
+        *user_id = -1;
+        return;
+    }
+
+    if (get_target("db_passwd", db_passwd) != 0) {
+        // 密码允许为空，但 key 必须存在
+        strcpy(db_passwd, ""); 
+    }
+
+    if (get_target("user_db_name", user_db_name) != 0) {
+        send_msg(client_fd, "error: config item 'db_name' missing");
+        *user_id = -1;
+        return;
+    }
+
     // 2. 准备加密信息
     char salt[33];         // 存储 32 位盐字符串 + \0
     char password_hash[65]; // 存储 64 位哈希字符串 + \0
@@ -155,7 +210,7 @@ void handle_register(int client_fd, const char *data, int *user_id) {
 
     // 3. 连接数据库
     MYSQL *conn = mysql_init(NULL);
-    if (!mysql_real_connect(conn, "localhost", "root", "", "testdb", 0, NULL, 0)) {
+    if (!mysql_real_connect(conn, db_host, db_user, db_passwd, user_db_name, 0, NULL, 0)) {
         send_msg(client_fd, "error: database connection failed");
         mysql_close(conn);
         return;
