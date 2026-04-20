@@ -7,6 +7,7 @@
 #include <time.h>
 #include "config.h"
 #include "auth.h"
+#include "session.h"
 
 /**
  * 将二进制数据转换为十六进制字符串

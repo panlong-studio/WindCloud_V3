@@ -13,6 +13,46 @@
 #include "client_command_handle.h"   // 新增头文件
 #include "log.h"
 
+static int client_login_menu(int sock_fd){
+    char input[512];
+    printf("\n================================\n");
+    printf("\n  欢迎使用 WindCloud 云盘系统！  \n");
+    printf("\n================================\n");
+
+    while(1){
+        printf("\n[未登录] 请选择操作：\n");
+        printf("-> login <用户名>/<密码>\n");
+        printf("-> register <用户名>/<密码>\n");
+        printf("-> quit\n");
+        printf("请输入命令: ");
+        fflush(stdout);
+
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            return -1;
+        }
+
+        input[strcspn(input, "\n")] = '\0';
+
+        if (strcmp(input, "quit") == 0) {
+            printf("再见！\n");
+            LOG_INFO("客户端请求退出");
+            break;
+        }
+
+        if(strncmp(input,"login ",6)==0||strncmp(input,"register ",9)==0){
+            int ret=process_command(sock_fd,input);
+            if(ret==1&&strncmp(input,"login ",6)==0){
+                LOG_INFO("用户登录");
+                return 0;
+            }
+            else if(ret==2&&strncmp(input,"register ",9)==0){
+                LOG_INFO("用户注册");
+                return 0;
+            }
+        }
+    }
+}
+
 static void load_value_or_default(const char *key, char *value, size_t value_sz, const char *default_value) {
     char tmp[256] = {0};
 
@@ -78,6 +118,13 @@ int main(int argc, char *argv[])
     // 主动连接到服务端。
     init_socket(&sock_fd, ip, port);
     LOG_INFO("客户端已连接服务器，地址=%s，端口=%s", ip, port);
+
+    // 进入登录/注册菜单。
+    if(client_login_menu(sock_fd) == -1) {
+        LOG_ERROR("客户端登录/注册菜单发生错误");
+        close(sock_fd);
+        return -1;
+    }
 
     // input 用来保存用户每次输入的一整行命令。
     char input[512];

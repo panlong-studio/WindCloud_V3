@@ -23,7 +23,7 @@ void handle_gets(int client_fd, char *current_path, char *arg) {
 
     if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
         LOG_WARN("下载路径非法，客户端fd=%d，当前路径=%s，参数=%s", client_fd, current_path, arg);
-        init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0);
+        init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0,NULL);
         send_file_packet(client_fd, &server_file_packet);
         return;
     }
@@ -31,7 +31,7 @@ void handle_gets(int client_fd, char *current_path, char *arg) {
     int file_fd = open(real_path, O_RDONLY);
     if (file_fd == -1) {
         LOG_WARN("打开下载文件失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
-        init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0);
+        init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0,NULL);
         send_file_packet(client_fd, &server_file_packet);
         return;
     }
@@ -40,12 +40,12 @@ void handle_gets(int client_fd, char *current_path, char *arg) {
     if (fstat(file_fd, &st) == -1) {
         LOG_ERROR("读取下载文件状态失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
         close(file_fd);
-        init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0);
+        init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, -1, 0,NULL);
         send_file_packet(client_fd, &server_file_packet);
         return;
     }
 
-    init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, st.st_size, 0);
+    init_file_packet(&server_file_packet, CMD_TYPE_GETS, arg, st.st_size, 0,NULL);
     if (send_file_packet(client_fd, &server_file_packet) == -1) {
         LOG_WARN("发送下载文件信息失败，客户端fd=%d，路径=%s", client_fd, real_path);
         close(file_fd);
@@ -119,7 +119,7 @@ void handle_puts(int client_fd, char *current_path, char *arg) {
     }
 
     file_packet_t server_file_packet;
-    init_file_packet(&server_file_packet, CMD_TYPE_PUTS, arg, client_file_packet.file_size, local_size);
+    init_file_packet(&server_file_packet, CMD_TYPE_PUTS, arg, client_file_packet.file_size, local_size,NULL);
     if (send_file_packet(client_fd, &server_file_packet) == -1) {
         close(file_fd);
         return;

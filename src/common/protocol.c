@@ -146,8 +146,8 @@ void init_file_packet(file_packet_t *packet, cmd_type_t type, const char *file_n
     }
 
     if(hash != NULL) {
-        strncpy(packet->hash, hash, 32);//拷贝 MD5 哈希值，32 字节，不包括 '\0'
-        packet->hash[32] = '\0';
+        strncpy(packet->hash, hash, 64);//拷贝 sha256 哈希值，64 字节，不包括 '\0'
+        packet->hash[64] = '\0';
     }
 }
 
