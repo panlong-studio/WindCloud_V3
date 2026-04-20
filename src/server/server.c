@@ -15,10 +15,14 @@
 #include "epoll.h"
 #include "server_socket.h"
 #include "config.h"
-#include "handle.h"
 #include "error_check.h"
 #include "log.h"
-
+#include "protocol.h"
+#include "session.h"
+#include "file_cmds.h"
+#include "file_transfer.h"
+#include "path_utils.h"
+#include "sha256_utils.h"
 
 // pipe_fd[0] 用来读，pipe_fd[1] 用来写。
 // 父进程收到 Ctrl+C 后，会往管道里写一个字节。

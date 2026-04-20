@@ -36,18 +36,24 @@ static int client_login_menu(int sock_fd){
         if (strcmp(input, "quit") == 0) {
             printf("再见！\n");
             LOG_INFO("客户端请求退出");
-            break;
+            exit(0);
         }
 
         if(strncmp(input,"login ",6)==0||strncmp(input,"register ",9)==0){
             int ret=process_command(sock_fd,input);
             if(ret==1&&strncmp(input,"login ",6)==0){
-                LOG_INFO("用户登录");
+                LOG_INFO("用户登录成功");
                 return 0;
             }
-            else if(ret==2&&strncmp(input,"register ",9)==0){
-                LOG_INFO("用户注册");
-                return 0;
+            else if(ret==2 && strncmp(input,"register ",9)==0){
+                LOG_INFO("用户注册成功");
+                printf(">>> 注册成功！请使用新账号进行 login 登录 <<<\n");
+                continue; // 留在这个死循环里，继续等用户敲 login
+            }
+            else{
+                LOG_ERROR("登录/注册失败，输入=%s", input);
+                printf(">>> 登录/注册失败，请检查用户名和密码格式 <<<\n");
+                continue;
             }
         }
     }
