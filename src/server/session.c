@@ -5,6 +5,7 @@
 #include "log.h"
 #include "file_cmds.h"
 #include "file_transfer.h"
+#include "auth.h"
 
 void send_msg(int client_fd, const char *msg) {
     command_packet_t reply_packet;
@@ -26,6 +27,7 @@ static cmd_type_t get_packet_cmd_type(const command_packet_t *cmd_packet) {
 
 void handle_request(int client_fd) {
     char current_path[512] = "/";
+    int current_user_id = -1; // -1 表示未登录
 
     while (1) {
         command_packet_t cmd_packet;
@@ -38,7 +40,21 @@ void handle_request(int client_fd) {
         cmd_type_t cmd_type = get_packet_cmd_type(&cmd_packet);
         LOG_DEBUG("收到客户端命令，客户端fd=%d，命令类型=%d，数据=%s", client_fd, cmd_type, cmd_packet.data);
 
+        if(current_user_id == -1 && cmd_type != CMD_TYPE_LOGIN && cmd_type != CMD_TYPE_REGISTER) {
+            LOG_WARN("未登录用户尝试执行命令，客户端fd=%d，命令类型=%d", client_fd, cmd_type);
+            send_msg(client_fd, "请先登录!");
+            continue;
+        }
+
         switch (cmd_type) {
+            case CMD_TYPE_LOGIN:
+                handle_login(client_fd, cmd_packet.data, &current_user_id);
+                break;
+
+            case CMD_TYPE_REGISTER:
+                handle_register(client_fd, cmd_packet.data, &current_user_id);
+                break;
+
             case CMD_TYPE_PWD:
                 handle_pwd(client_fd, current_path);
                 break;

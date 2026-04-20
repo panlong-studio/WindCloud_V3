@@ -33,6 +33,12 @@ cmd_type_t get_cmd_type(const char *cmd_str) {
     if (strcmp(cmd_str, "mkdir") == 0) {
         return CMD_TYPE_MKDIR;
     }
+    if (strcmp(cmd_str, "login") == 0) {
+        return CMD_TYPE_LOGIN;
+    }
+    if (strcmp(cmd_str, "register") == 0) {
+        return CMD_TYPE_REGISTER;
+    }
 
     return CMD_TYPE_INVALID;
 }
@@ -121,7 +127,7 @@ void init_command_packet(command_packet_t *packet, cmd_type_t type, const char *
 // 参数 file_size：文件总大小。
 // 参数 offset：断点位置。
 // 返回值：无。
-void init_file_packet(file_packet_t *packet, cmd_type_t type, const char *file_name, off_t file_size, off_t offset) {
+void init_file_packet(file_packet_t *packet, cmd_type_t type, const char *file_name, off_t file_size, off_t offset, const char *hash) {
     // 先把整个结构体清零，避免发送脏数据。
     memset(packet, 0, sizeof(file_packet_t));
 
@@ -137,6 +143,11 @@ void init_file_packet(file_packet_t *packet, cmd_type_t type, const char *file_n
 
         // 记录真实文件名长度。
         packet->data_len = strlen(packet->file_name);
+    }
+
+    if(hash != NULL) {
+        strncpy(packet->hash, hash, 32);//拷贝 MD5 哈希值，32 字节，不包括 '\0'
+        packet->hash[32] = '\0';
     }
 }
 

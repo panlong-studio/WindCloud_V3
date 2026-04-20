@@ -1,7 +1,7 @@
 # 1. 编译器与选项
 CC      = gcc
-CFLAGS  = -Wall -Wextra -g -Iinclude
-LIBS    = -lpthread  # 看到你有 thread_pool.h，通常需要线程库
+CFLAGS  = -Wall -Wextra -g -Iinclude # 包含头文件目录
+LIBS    = -lpthread -lcrypto -lmysqlclient  # 链接线程库、加密库和 MySQL 客户端库
 
 # 2. 目录定义
 SRC_DIR    = src
