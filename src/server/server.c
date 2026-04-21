@@ -23,6 +23,7 @@
 #include "file_transfer.h"
 #include "path_utils.h"
 #include "sha256_utils.h"
+#include "db_init.h"
 
 // pipe_fd[0] 用来读，pipe_fd[1] 用来写。
 // 父进程收到 Ctrl+C 后，会往管道里写一个字节。
@@ -90,11 +91,28 @@ int main(){
     load_value_or_default("log", log_level, sizeof(log_level), "INFO");
     load_value_or_default("server_log", log_file, sizeof(log_file), "../log/server.log");
 
+    char db_host[64] = {0};
+    char db_user[64] = {0};
+    char db_pwd[64] = {0};
+    char db_name[64] = {0};
+
+    // 尝试从配置文件读，读不到就用默认值（这里默认用 root 和 密码 123456，供本地测试）
+    load_value_or_default("db_host", db_host, sizeof(db_host), "127.0.0.1");
+    load_value_or_default("db_user", db_user, sizeof(db_user), "root");
+    load_value_or_default("db_pwd",  db_pwd,  sizeof(db_pwd),  "123456"); 
+    load_value_or_default("db_name", db_name, sizeof(db_name), "netdisk_db");
+
     // 先初始化日志。
     // 否则 socket/bind/accept 等调用一旦失败，ERROR_CHECK 无法安全打印日志。
     init_log_with_fallback(log_level, log_file);
     LOG_INFO("服务端配置加载完成，地址=%s，端口=%s", ip, port);
 
+     if (init_database(db_host, db_user, db_pwd, db_name) != 0) {
+        LOG_ERROR("数据库初始化失败，服务端拒绝启动");
+        close_log();
+        return 1;
+    }
+    
     // 创建匿名管道，用于父进程通知子进程退出。
     if (pipe(pipe_fd) != 0) {
         LOG_ERROR("创建管道失败: %s", strerror(errno));

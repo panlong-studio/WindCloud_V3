@@ -1,9 +1,37 @@
-[2026-04-20 22:17:10] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
-[2026-04-20 22:17:10] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
-[2026-04-20 22:17:10] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
-[2026-04-20 22:17:10] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
-[2026-04-20 22:17:10] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
-[2026-04-20 22:17:10] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
-[2026-04-20 22:17:10] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
-[2026-04-20 22:17:23] [DEBUG] [src/client/client_command_handle.c:64 recv_server_reply] 收到服务端响应，套接字=5，消息=error: database connection failed
-[2026-04-20 22:17:23] [ERROR] [src/client/client.c:54 client_login_menu] 登录/注册失败，输入=login root/123456
+[2026-04-20 22:38:52] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 22:38:52] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-20 22:38:52] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-20 22:38:52] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-20 22:38:52] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-20 22:38:52] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-20 22:38:52] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-20 22:38:56] [INFO] [src/client/client.c:38 client_login_menu] 客户端请求退出
+[2026-04-20 22:39:06] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 22:39:06] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-20 22:39:06] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-20 22:39:06] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-20 22:39:06] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-20 22:39:06] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-20 22:39:06] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-20 22:39:18] [DEBUG] [src/client/client_command_handle.c:64 recv_server_reply] 收到服务端响应，套接字=5，消息=error: database connection failed
+[2026-04-20 22:39:18] [ERROR] [src/client/client.c:54 client_login_menu] 登录/注册失败，输入=login root/123456
+[2026-04-20 23:46:53] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-20 23:46:53] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-20 23:46:53] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-20 23:46:53] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-20 23:46:53] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-20 23:46:53] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-20 23:46:53] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-20 23:48:07] [DEBUG] [src/client/client_command_handle.c:64 recv_server_reply] 收到服务端响应，套接字=5，消息=error: database connection failed
+[2026-04-20 23:48:07] [ERROR] [src/client/client.c:54 client_login_menu] 登录/注册失败，输入=register root/123456
+[2026-04-20 23:48:23] [INFO] [src/client/client.c:38 client_login_menu] 客户端请求退出
+[2026-04-21 09:02:33] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-21 09:02:33] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-21 09:02:33] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-21 09:02:33] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-21 09:02:33] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-21 09:02:33] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-21 09:02:33] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-21 09:04:43] [DEBUG] [src/client/client_command_handle.c:64 recv_server_reply] 收到服务端响应，套接字=5，消息=error: username or password missing
+[2026-04-21 09:04:43] [ERROR] [src/client/client.c:54 client_login_menu] 登录/注册失败，输入=login root 123456
+[2026-04-21 09:04:50] [INFO] [src/client/client.c:38 client_login_menu] 客户端请求退出
