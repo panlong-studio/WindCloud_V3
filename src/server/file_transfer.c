@@ -46,6 +46,9 @@ static int ensure_store_dir(char *store_dir, int size) {
     struct stat st;
     const char *base_dir = get_server_base_dir();
 
+    // 最终真实文件目录固定成：
+    // test/files
+    // 这里不是用户虚拟路径，而是服务器统一的真实文件仓库。
     if (snprintf(store_dir, size, "%s/%s", base_dir, FILE_STORE_DIR_NAME) >= size) {
         return -1;
     }
@@ -54,6 +57,9 @@ static int ensure_store_dir(char *store_dir, int size) {
         if (S_ISDIR(st.st_mode)) {
             return 0;
         }
+
+        // 如果同名路径存在，但它不是目录，而是普通文件，
+        // 那当前存储环境就是错误的，后续不能继续用。
         return -1;
     }
 
@@ -89,6 +95,11 @@ static int build_full_virtual_path(char *full_path, int size, ClientContext *ctx
         return -1;
     }
 
+    // 这里复用 path_utils 里的基础路径校验。
+    // 例如：
+    // 1. 空字符串不允许
+    // 2. ".." 不允许
+    // 3. 绝对路径不允许
     if (check_arg_path(arg) == -1) {
         return -1;
     }
@@ -101,10 +112,12 @@ static int build_full_virtual_path(char *full_path, int size, ClientContext *ctx
     }
 
     if (strcmp(ctx->current_path, "/") == 0) {
+        // 当前就在根目录时，逻辑路径就是 "/文件名"
         if (snprintf(full_path, size, "/%s", arg) >= size) {
             return -1;
         }
     } else {
+        // 当前不在根目录时，逻辑路径就是 "当前目录/文件名"
         if (snprintf(full_path, size, "%s/%s", ctx->current_path, arg) >= size) {
             return -1;
         }
@@ -142,11 +155,18 @@ static void send_gets_failed_packet(int client_fd, const char *file_name) {
 // 2. 如果是刚刚新插入 files 表的第一条记录，count 已经是 1 了，就不用再加
 static int create_user_file_link(ClientContext *ctx, const char *full_path, const char *file_name,
                                  int file_id, int need_add_ref) {
+    // 先插入 paths 记录。
+    // 这一步的意义是：
+    // 让“这个用户在这个目录下看到了这个文件”。
     if (dao_create_file_node(ctx->user_id, full_path, ctx->parent_id, file_name, file_id) != 0) {
         return -1;
     }
 
     if (need_add_ref) {
+        // 只有在“真实文件本来就存在”的情况下，才需要把引用计数加 1。
+        // 例如：
+        // 1. 秒传
+        // 2. 并发下别的线程已经先插入了同一个 files 记录
         if (dao_file_add_ref_count(file_id) != 0) {
             return -1;
         }
@@ -164,10 +184,17 @@ static int finish_upload_db_work(ClientContext *ctx, const char *full_path, cons
     int file_id = 0;
     off_t db_file_size = 0;
 
+    // 先尝试把这份真实文件作为“新文件”插入 files 表。
     if (dao_file_insert(sha256sum, file_size, &file_id) == 0) {
         return create_user_file_link(ctx, full_path, file_name, file_id, 0);
     }
 
+    // 如果插入失败，最常见的情况是：
+    // 同一时刻别的线程已经插入了同一个 hash。
+    // 那当前线程就退化为：
+    // 1. 再查一次 file_id
+    // 2. 给当前用户补一条 paths
+    // 3. 再把 count +1
     if (dao_file_find_by_sha256(sha256sum, &file_id, &db_file_size) == 0) {
         return create_user_file_link(ctx, full_path, file_name, file_id, 1);
     }
@@ -247,6 +274,7 @@ void handle_gets(int client_fd, ClientContext *ctx, char *arg) {
     off_t offset = client_file_packet.offset;
 
     if (offset < 0 || offset > st.st_size) {
+        // 如果客户端给出的断点非法，最简单安全的处理方式就是从头开始发。
         offset = 0;
     }
 
@@ -328,6 +356,11 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     }
 
     if (client_file_packet.hash[0] == '\0') {
+        // 当前这套秒传/真实落盘设计是强依赖 hash 的。
+        // 如果客户端没传 hash，那么：
+        // 1. 无法秒传判断
+        // 2. 无法定位真实文件名
+        // 所以直接拒绝。
         send_msg(client_fd, "上传失败：客户端没有提供文件哈希值");
         return;
     }
@@ -339,6 +372,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     off_t existed_file_size = 0;
 
     if (dao_file_find_by_sha256(client_file_packet.hash, &existed_file_id, &existed_file_size) == 0) {
+        // 这里说明服务器已经有完全相同内容的真实文件了。
+        // 所以后面根本不用进入 recv 文件内容循环，直接秒传即可。
         if (create_user_file_link(ctx, full_path, file_name, existed_file_id, 1) != 0) {
             send_msg(client_fd, "秒传失败：数据库写入失败");
             return;
@@ -413,6 +448,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     // 如果这个 hash 文件在磁盘上其实已经完整了，只是数据库记录还没补上，
     // 那就不需要再收数据，直接补数据库即可。
     if (remaining <= 0) {
+        // remaining <= 0 说明磁盘上这份 hash 文件已经完整了。
+        // 这时无需再收网络数据，只需要把数据库关系补齐即可。
         if (finish_upload_db_work(ctx, full_path, file_name, client_file_packet.hash, file_len) != 0) {
             send_msg(client_fd, "上传失败：数据库写入失败");
         } else {
@@ -432,6 +469,9 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     // 空文件不需要走下面的数据接收循环。
     // 但数据库记录还是得补齐。
     if (file_len == 0) {
+        // 空文件是一个特殊情况：
+        // 它没有任何正文数据要 recv，
+        // 但仍然应该在 files / paths 中留下记录。
         if (finish_upload_db_work(ctx, full_path, file_name, client_file_packet.hash, file_len) != 0) {
             send_msg(client_fd, "上传失败：数据库写入失败");
         } else {
@@ -462,6 +502,9 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
             once = (int)(remaining - received_count);
         }
 
+        // 注意这里不能用 recv_full。
+        // 因为网络传输中这一轮到底能收到多少字节，取决于内核当前给了多少。
+        // 我们只需要不断累计，直到总量达到 remaining 即可。
         ssize_t ret = recv(client_fd, write_start + received_count, once, 0);
         if (ret <= 0) {
             break;
@@ -476,6 +519,9 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     // 这里把文件截断到“原来已有的部分 + 本次真正收到的部分”。
     // 下次客户端再上传相同 hash 时，就能从这个位置继续续传。
     if (received_count < remaining) {
+        // 假设本次只收到了一部分数据，就把文件截断到“真实收到的位置”。
+        // 这样下次客户端再上传同一个 hash 时，
+        // 服务端仍然可以从这个位置继续续传，而不是把脏数据留在文件尾部。
         ftruncate(file_fd, local_size + received_count);
         send_msg(client_fd, "传输中断，已保存当前进度。");
         close(file_fd);
