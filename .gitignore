@@ -52,6 +52,8 @@ Thumbs.db
 *.code-workspace
 *.swp
 *.swo
+*.codex
+.codex
 
 # =================================================
 # 4. 构建工具 (Makefile/CMake)

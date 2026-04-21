@@ -1,130 +1,200 @@
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <errno.h>
+#include <stdlib.h>
 #include "file_cmds.h"
-#include "path_utils.h"
+#include "dao_vfs.h"
 #include "session.h"
 #include "log.h"
 
-void handle_cd(int client_fd, char *current_path, char *arg) {
+// 内部工具函数：逻辑路径拼接 (不查硬盘)
+static void build_abs_path(const char *current_path, const char *arg, char *result) {
+    if (arg[0] == '/') { // 输入的是绝对路径
+        strcpy(result, arg);
+        return;
+    }
+    if (strcmp(current_path, "/") == 0) {
+        sprintf(result, "/%s", arg);
+    } else {
+        sprintf(result, "%s/%s", current_path, arg);
+    }
+}
+
+// 内部工具函数：获取父级逻辑路径
+static void get_parent_path(const char *current_path, char *result) {
+    if (strcmp(current_path, "/") == 0) {
+        strcpy(result, "/");
+        return;
+    }
+    strcpy(result, current_path);
+    char *last_slash = strrchr(result, '/');
+    if (last_slash == result) { // 类似 "/abc" -> 返回 "/"
+        strcpy(result, "/");
+    } else if (last_slash != NULL) { // 类似 "/abc/def" -> 返回 "/abc"
+        *last_slash = '\0';
+    }
+}
+
+// 内部工具函数：从全路径中提取 file_name
+static void extract_file_name(const char *full_path, char *file_name) {
+    const char *last_slash = strrchr(full_path, '/');
+    if (last_slash != NULL) {
+        strcpy(file_name, last_slash + 1);
+    } else {
+        strcpy(file_name, full_path);
+    }
+}
+
+// ================== 业务命令实现 ==================
+
+void handle_pwd(int client_fd, ClientContext *ctx) {
+    LOG_INFO("客户端请求 pwd，fd=%d，当前路径=%s", client_fd, ctx->current_path);
+    send_msg(client_fd, ctx->current_path);
+}
+
+void handle_ls(int client_fd, ClientContext *ctx) {
+    char buf[4096] = {0};
+    int ret = dao_list_dir(ctx->user_id, ctx->parent_id, buf);
+    
+    if (ret < 0) {
+        send_msg(client_fd, "服务器查询目录失败");
+    } else if (ret == 0) {
+        send_msg(client_fd, "当前目录为空");
+    } else {
+        send_msg(client_fd, buf);
+    }
+}
+
+void handle_cd(int client_fd, ClientContext *ctx, char *arg) {
     if (arg == NULL || arg[0] == '\0') {
-        LOG_WARN("切换目录缺少参数，客户端fd=%d", client_fd);
-        send_msg(client_fd, "输入错误");
+        send_msg(client_fd, "cd 命令缺少参数");
         return;
     }
 
+    char target_path[256] = {0};
+
+    // 处理 cd .. 
     if (strcmp(arg, "..") == 0) {
-        strcpy(current_path, "/");
-        LOG_INFO("客户端切换回根目录，客户端fd=%d", client_fd);
-        send_msg(client_fd, "已返回根目录");
+        get_parent_path(ctx->current_path, target_path);
+    } 
+    // 处理 cd .
+    else if (strcmp(arg, ".") == 0) {
+        send_msg(client_fd, "进入目录成功");
+        return;
+    } 
+    // 处理普通目录或绝对路径
+    else {
+        build_abs_path(ctx->current_path, arg, target_path);
+    }
+
+    // 查库判断目标路径是否存在，且必须是目录 (type=1)
+    int target_id, node_type;
+    if (dao_get_node_by_path(ctx->user_id, target_path, &target_id, &node_type) != 0) {
+        send_msg(client_fd, "错误：目录不存在");
         return;
     }
 
-    char real_path[MAX_PATH_LEN] = {0};
-    if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
-        LOG_WARN("切换目录路径非法，客户端fd=%d，当前路径=%s，参数=%s", client_fd, current_path, arg);
-        send_msg(client_fd, "路径非法或过长");
+    if (node_type != 1) {
+        send_msg(client_fd, "错误：目标不是一个目录");
         return;
     }
 
-    DIR *dir = opendir(real_path);
-    if (dir == NULL) {
-        LOG_WARN("切换目录失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
-        send_msg(client_fd, "目录不存在！");
-        return;
-    }
-    closedir(dir);
-
-    if (update_current_path(current_path, 512, arg) == -1) {
-        LOG_WARN("切换目录路径过长，客户端fd=%d，当前路径=%s，参数=%s", client_fd, current_path, arg);
-        send_msg(client_fd, "路径过长");
-        return;
-    }
-
-    LOG_INFO("切换目录成功，客户端fd=%d，当前路径=%s", client_fd, current_path);
+    // 更新 Context 状态
+    strcpy(ctx->current_path, target_path);
+    ctx->parent_id = target_id;
+    
+    LOG_INFO("cd 成功，当前上下文：用户=%d, 路径=%s, 节点id=%d", ctx->user_id, ctx->current_path, ctx->parent_id);
     send_msg(client_fd, "进入目录成功");
 }
 
-void handle_ls(int client_fd, char *current_path) {
-    char real_path[MAX_PATH_LEN] = {0};
-    if (get_current_real_path(real_path, sizeof(real_path), current_path) == -1) {
-        LOG_WARN("列目录路径过长，客户端fd=%d，当前路径=%s", client_fd, current_path);
-        send_msg(client_fd, "路径过长");
+void handle_mkdir(int client_fd, ClientContext *ctx, char *arg) {
+    char target_path[256] = {0};
+    char file_name[64] = {0};
+    
+    build_abs_path(ctx->current_path, arg, target_path);
+    extract_file_name(target_path, file_name);
+
+    int tmp_id, tmp_type;
+    if (dao_get_node_by_path(ctx->user_id, target_path, &tmp_id, &tmp_type) == 0) {
+        send_msg(client_fd, "错误：该文件或目录已存在");
         return;
     }
 
-    DIR *dir = opendir(real_path);
-    if (dir == NULL) {
-        LOG_WARN("列目录失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
-        send_msg(client_fd, "目录打开失败");
-        return;
-    }
-
-    struct dirent *file = NULL;
-    char result[4096] = {0};
-    int used = 0;
-
-    while ((file = readdir(dir)) != NULL) {
-        if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0) {
-            continue;
-        }
-
-        int left = (int)sizeof(result) - used;
-        int ret = snprintf(result + used, left, "%s ", file->d_name);
-
-        if (ret < 0 || ret >= left) break;
-        used += ret;
-    }
-    closedir(dir);
-
-    if (used == 0) {
-        LOG_INFO("目录为空，客户端fd=%d，路径=%s", client_fd, current_path);
-        send_msg(client_fd, "当前目录为空");
-        return;
-    }
-
-    LOG_INFO("列目录成功，客户端fd=%d，路径=%s", client_fd, current_path);
-    send_msg(client_fd, result);
-}
-
-void handle_pwd(int client_fd, char *current_path) {
-    LOG_INFO("处理显示当前路径命令，客户端fd=%d，当前路径=%s", client_fd, current_path);
-    send_msg(client_fd, current_path);
-}
-
-void handle_rm(int client_fd, char *current_path, char *arg) {
-    char real_path[MAX_PATH_LEN] = {0};
-    if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
-        LOG_WARN("删除路径非法，客户端fd=%d，当前路径=%s，参数=%s", client_fd, current_path, arg);
-        send_msg(client_fd, "路径非法或过长");
-        return;
-    }
-
-    if (remove(real_path) == 0) {
-        LOG_INFO("删除成功，客户端fd=%d，路径=%s", client_fd, real_path);
-        send_msg(client_fd, "删除成功");
-    } else {
-        LOG_WARN("删除失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
-        send_msg(client_fd, "删除失败");
-    }
-}
-
-void handle_mkdir(int client_fd, char *current_path, char *arg) {
-    char real_path[MAX_PATH_LEN] = {0};
-    if (get_real_path(real_path, sizeof(real_path), current_path, arg) == -1) {
-        LOG_WARN("创建目录路径非法，客户端fd=%d，当前路径=%s，参数=%s", client_fd, current_path, arg);
-        send_msg(client_fd, "路径非法或过长");
-        return;
-    }
-
-    if (mkdir(real_path, 0755) == 0) {
-        LOG_INFO("创建目录成功，客户端fd=%d，路径=%s", client_fd, real_path);
+    if (dao_create_node(ctx->user_id, target_path, ctx->parent_id, file_name, 1) == 0) {
         send_msg(client_fd, "创建文件夹成功");
     } else {
-        LOG_WARN("创建目录失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
-        send_msg(client_fd, "文件夹创建失败");
+        send_msg(client_fd, "创建文件夹失败，服务器内部错误");
+    }
+}
+
+// 新增功能：创建空文件
+void handle_touch(int client_fd, ClientContext *ctx, char *arg) {
+    char target_path[256] = {0};
+    char file_name[64] = {0};
+    
+    build_abs_path(ctx->current_path, arg, target_path);
+    extract_file_name(target_path, file_name);
+
+    int tmp_id, tmp_type;
+    if (dao_get_node_by_path(ctx->user_id, target_path, &tmp_id, &tmp_type) == 0) {
+        send_msg(client_fd, "错误：该文件或目录已存在");
+        return;
+    }
+
+    // type = 0 表示创建的是文件
+    if (dao_create_node(ctx->user_id, target_path, ctx->parent_id, file_name, 0) == 0) {
+        send_msg(client_fd, "创建文件成功");
+    } else {
+        send_msg(client_fd, "创建文件失败，服务器内部错误");
+    }
+}
+
+void handle_rm(int client_fd, ClientContext *ctx, char *arg) {
+    char target_path[256] = {0};
+    build_abs_path(ctx->current_path, arg, target_path);
+
+    int target_id, node_type;
+    if (dao_get_node_by_path(ctx->user_id, target_path, &target_id, &node_type) != 0) {
+        send_msg(client_fd, "错误：文件不存在");
+        return;
+    }
+
+    if (node_type == 1) {
+        send_msg(client_fd, "错误：目标是目录，请使用 rmdir 命令");
+        return;
+    }
+
+    if (dao_delete_node(ctx->user_id, target_id) == 0) {
+        send_msg(client_fd, "文件删除成功");
+    } else {
+        send_msg(client_fd, "文件删除失败，数据库异常");
+    }
+}
+
+// 新增功能：删除目录
+void handle_rmdir(int client_fd, ClientContext *ctx, char *arg) {
+    char target_path[256] = {0};
+    build_abs_path(ctx->current_path, arg, target_path);
+
+    int target_id, node_type;
+    if (dao_get_node_by_path(ctx->user_id, target_path, &target_id, &node_type) != 0) {
+        send_msg(client_fd, "错误：目录不存在");
+        return;
+    }
+
+    if (node_type == 0) {
+        send_msg(client_fd, "错误：目标是文件，请使用 rm 命令");
+        return;
+    }
+
+    // 检查目录是否为空
+    if (!dao_is_dir_empty(ctx->user_id, target_id)) {
+        send_msg(client_fd, "错误：目录非空，无法删除");
+        return;
+    }
+
+    if (dao_delete_node(ctx->user_id, target_id) == 0) {
+        send_msg(client_fd, "空目录删除成功");
+    } else {
+        send_msg(client_fd, "目录删除失败，数据库异常");
     }
 }
