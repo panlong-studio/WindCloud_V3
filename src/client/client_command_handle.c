@@ -52,11 +52,8 @@ static int recv_server_reply(int sock_fd) {
         return -1;
     }
 
-    if(strstr(reply_packet.data, "登录成功") != NULL) {
+    if(strstr(reply_packet.data, "success") != NULL) {
         return 1;
-    }
-    else if(strstr(reply_packet.data, "注册成功") != NULL) {
-        return 2;
     }
 
     // 把服务端返回的文本直接打印出来。
@@ -438,6 +435,7 @@ int process_command(int sock_fd, const char *input) {
         return -1;
     }
 
-    // 普通命令通常都会收到一条文本响应。
+    // 普通命令通常都会收到一条文本响应，此时返回 0
+    //登录或注册成功时返回 1。
     return recv_server_reply(sock_fd);
 }
