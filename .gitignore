@@ -79,3 +79,4 @@ log/*.log
 # 忽略专门存放测试素材的目录
 test/
 test/tmp/
+config/config.ini
