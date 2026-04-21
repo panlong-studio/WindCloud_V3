@@ -8,8 +8,15 @@
 #define CMD_DATA_LEN 256
 
 // 文件名也统一使用固定长度数组。
-// 第一、二期学习项目里，这种写法最直观。
 #define FILE_NAME_LEN 256
+
+//用户的会话状态结构体
+typedef struct{
+    int user_id;//用户 ID，登录后才有值
+    char current_path[256];//当前虚拟路径
+    int parent_id;//父目录 ID，根目录的 parent_id 是 0
+}ClientContext;
+
 
 // 命令类型枚举。
 // 客户端发命令时写入这个编号。
@@ -24,6 +31,8 @@ typedef enum {
     CMD_TYPE_PUTS,        // 上传文件
     CMD_TYPE_RM,          // 删除文件
     CMD_TYPE_MKDIR,       // 创建目录
+    CMD_TYPE_RMDIR,      // 删除目录
+    CMD_TYPE_TOUCH,      // 创建文件
     CMD_TYPE_REPLY,        // 服务端返回的普通文本响应
     CMD_TYPE_LOGIN,        // 登录命令
     CMD_TYPE_REGISTER,     // 注册命令

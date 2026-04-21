@@ -275,3 +275,76 @@
 [2026-04-21 14:30:22] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=128491529946688
 [2026-04-21 14:30:22] [INFO] [src/server/db_pool.c:93 destroy_db_pool] db_pool:数据库连接池销毁成功
 [2026-04-21 14:30:22] [INFO] [src/server/server.c:152 main] 服务端父进程退出
+[2026-04-21 15:35:34] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-21 15:35:34] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-21 15:35:34] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-21 15:35:34] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-21 15:35:34] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_host
+[2026-04-21 15:35:34] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=db_user value=root
+[2026-04-21 15:35:34] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_pwd
+[2026-04-21 15:35:34] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_name
+[2026-04-21 15:35:34] [INFO] [src/server/server.c:109 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-21 15:35:35] [INFO] [src/server/db_init.c:87 init_database] 数据库 [netdisk_db] 及数据表初始化校验完成
+[2026-04-21 15:35:35] [INFO] [src/server/db_pool.c:81 init_db_pool] db_pool:数据库连接池初始化成功，池大小=10
+[2026-04-21 15:35:35] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=17
+[2026-04-21 15:35:35] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-21 15:35:35] [INFO] [src/server/server.c:148 main] 服务端父进程等待子进程退出，子进程pid=26573
+[2026-04-21 15:35:35] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=17
+[2026-04-21 15:35:35] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-21 15:35:35] [INFO] [src/server/server.c:178 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-21 15:35:49] [INFO] [src/server/server.c:264 main] 接收到客户端连接，客户端fd=19
+[2026-04-21 15:35:49] [INFO] [src/server/worker.c:60 thread_func] 工作线程开始处理客户端，线程=128071405397568，客户端fd=19
+[2026-04-21 15:47:04] [DEBUG] [src/server/session.c:41 handle_request] 收到客户端命令，客户端fd=19，命令类型=9，数据=user03/12345
+[2026-04-21 15:47:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-21 15:47:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=db_user value=root
+[2026-04-21 15:47:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=db_passwd value=123456
+[2026-04-21 15:47:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=user_db_name value=netdisk_db
+[2026-04-21 15:47:04] [DEBUG] [src/server/session.c:18 send_msg] 响应发送成功，客户端fd=19，消息=success: login ok, user_id=3
+[2026-04-21 15:47:10] [DEBUG] [src/server/session.c:41 handle_request] 收到客户端命令，客户端fd=19，命令类型=3，数据=
+[2026-04-21 15:47:10] [INFO] [src/server/file_cmds.c:89 handle_ls] 列目录成功，客户端fd=19，路径=/
+[2026-04-21 15:47:10] [DEBUG] [src/server/session.c:18 send_msg] 响应发送成功，客户端fd=19，消息=temp tmp_file.txt big_file.txt tmp demo 
+[2026-04-21 15:47:14] [INFO] [src/server/session.c:36 handle_request] 客户端连接断开，客户端fd=19，当前路径=/
+[2026-04-21 15:47:14] [INFO] [src/server/worker.c:79 thread_func] 工作线程处理完成，线程=128071405397568，客户端fd=19
+[2026-04-21 15:47:22] [INFO] [src/server/server.c:203 main] 服务端收到退出信号
+[2026-04-21 15:47:22] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=128071405397568
+[2026-04-21 15:47:22] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=128071397004864
+[2026-04-21 15:47:22] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=128071388612160
+[2026-04-21 15:47:22] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=128071380219456
+[2026-04-21 15:47:22] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=128071413790272
+[2026-04-21 15:47:22] [INFO] [src/server/db_pool.c:93 destroy_db_pool] db_pool:数据库连接池销毁成功
+[2026-04-21 15:47:22] [INFO] [src/server/server.c:152 main] 服务端父进程退出
+[2026-04-21 23:35:36] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-21 23:35:36] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-21 23:35:36] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-21 23:35:36] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=server_log value=../log/server.log
+[2026-04-21 23:35:36] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_host
+[2026-04-21 23:35:36] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=db_user value=root
+[2026-04-21 23:35:36] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_pwd
+[2026-04-21 23:35:36] [WARN] [src/common/config.c:71 get_target] 配置项不存在 key=db_name
+[2026-04-21 23:35:36] [INFO] [src/server/server.c:109 main] 服务端配置加载完成，地址=127.0.0.1，端口=9090
+[2026-04-21 23:35:37] [INFO] [src/server/db_init.c:87 init_database] 数据库 [netdisk_db] 及数据表初始化校验完成
+[2026-04-21 23:35:37] [INFO] [src/server/db_pool.c:81 init_db_pool] db_pool:数据库连接池初始化成功，池大小=10
+[2026-04-21 23:35:37] [INFO] [src/server/server.c:148 main] 服务端父进程等待子进程退出，子进程pid=33492
+[2026-04-21 23:35:37] [INFO] [src/server/server_socket.c:22 init_socket] 服务端监听套接字创建成功，描述符=17
+[2026-04-21 23:35:37] [INFO] [src/server/server_socket.c:47 init_socket] 服务端绑定成功，地址=127.0.0.1，端口=9090
+[2026-04-21 23:35:37] [INFO] [src/server/server_socket.c:53 init_socket] 服务端开始监听，描述符=17
+[2026-04-21 23:35:37] [INFO] [src/server/thread_pool.c:66 init_thread_pool] 线程池初始化完成，工作线程数=5
+[2026-04-21 23:35:37] [INFO] [src/server/server.c:178 main] 服务端启动成功，地址=127.0.0.1，端口=9090
+[2026-04-21 23:35:43] [INFO] [src/server/server.c:264 main] 接收到客户端连接，客户端fd=19
+[2026-04-21 23:35:43] [INFO] [src/server/worker.c:60 thread_func] 工作线程开始处理客户端，线程=139473004262976，客户端fd=19
+[2026-04-21 23:35:58] [DEBUG] [src/server/session.c:46 handle_request] 收到客户端命令，客户端fd=19，命令类型=9，数据=user03/12345
+[2026-04-21 23:35:58] [WARN] [src/server/session.c:49 handle_request] 未登录用户尝试执行命令，客户端fd=19，命令类型=9
+[2026-04-21 23:35:58] [DEBUG] [src/server/session.c:18 send_msg] 响应发送成功，客户端fd=19，消息=请先登录!
+[2026-04-21 23:36:26] [DEBUG] [src/server/session.c:46 handle_request] 收到客户端命令，客户端fd=19，命令类型=9，数据=user03/123456
+[2026-04-21 23:36:26] [WARN] [src/server/session.c:49 handle_request] 未登录用户尝试执行命令，客户端fd=19，命令类型=9
+[2026-04-21 23:36:26] [DEBUG] [src/server/session.c:18 send_msg] 响应发送成功，客户端fd=19，消息=请先登录!
+[2026-04-21 23:36:43] [INFO] [src/server/session.c:41 handle_request] 客户端连接断开，客户端fd=19，当前路径=/
+[2026-04-21 23:36:43] [INFO] [src/server/worker.c:79 thread_func] 工作线程处理完成，线程=139473004262976，客户端fd=19
+[2026-04-21 23:36:47] [INFO] [src/server/server.c:203 main] 服务端收到退出信号
+[2026-04-21 23:36:47] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=139472995870272
+[2026-04-21 23:36:47] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=139472987477568
+[2026-04-21 23:36:47] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=139472970692160
+[2026-04-21 23:36:47] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=139473004262976
+[2026-04-21 23:36:47] [INFO] [src/server/worker.c:82 thread_func] 工作线程退出，线程=139472979084864
+[2026-04-21 23:36:47] [INFO] [src/server/db_pool.c:93 destroy_db_pool] db_pool:数据库连接池销毁成功
+[2026-04-21 23:36:47] [INFO] [src/server/server.c:152 main] 服务端父进程退出
