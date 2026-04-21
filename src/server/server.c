@@ -24,6 +24,7 @@
 #include "path_utils.h"
 #include "sha256_utils.h"
 #include "db_init.h"
+#include "db_pool.h"
 
 // pipe_fd[0] 用来读，pipe_fd[1] 用来写。
 // 父进程收到 Ctrl+C 后，会往管道里写一个字节。
@@ -107,11 +108,20 @@ int main(){
     init_log_with_fallback(log_level, log_file);
     LOG_INFO("服务端配置加载完成，地址=%s，端口=%s", ip, port);
 
-     if (init_database(db_host, db_user, db_pwd, db_name) != 0) {
+    //服务端数据库自动建表
+    if (init_database(db_host, db_user, db_pwd, db_name) != 0) {
         LOG_ERROR("数据库初始化失败，服务端拒绝启动");
         close_log();
         return 1;
     }
+
+    // 初始化数据库连接池
+    if(init_db_pool(db_host, db_user, db_pwd, db_name, 10) != 0) {
+        LOG_ERROR("数据库连接池初始化失败，服务端拒绝启动");
+        close_log();
+        return 1;
+    }
+
     
     // 创建匿名管道，用于父进程通知子进程退出。
     if (pipe(pipe_fd) != 0) {
@@ -230,6 +240,9 @@ int main(){
 
                 // 回收线程池资源。
                 destroy_thread_pool(&pool);
+
+                // 销毁数据库连接池。
+                destroy_db_pool();
 
                 // 关闭管道两端和 epoll。
                 close(pipe_fd[0]);

@@ -67,3 +67,31 @@
 [2026-04-21 10:29:08] [INFO] [src/client/client_command_handle.c:283 process_command] 下载成功，文件=big_file.txt，大小=421429351
 [2026-04-21 10:29:30] [INFO] [src/client/client.c:161 main] 客户端请求退出
 [2026-04-21 10:29:30] [INFO] [src/client/client.c:177 main] 客户端套接字已关闭
+[2026-04-21 14:26:50] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-21 14:26:50] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-21 14:26:50] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-21 14:26:50] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-21 14:26:50] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-21 14:26:50] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-21 14:26:50] [INFO] [src/client/client.c:127 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-21 14:27:04] [INFO] [src/client/client.c:45 client_login_menu] 用户登录成功
+[2026-04-21 14:27:07] [DEBUG] [src/client/client.c:171 main] 客户端开始处理命令，输入=ls
+[2026-04-21 14:27:07] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=temp tmp_file.txt big_file.txt tmp demo 
+[2026-04-21 14:27:30] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-21 14:27:30] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-21 14:27:30] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-21 14:27:30] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-21 14:27:30] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-21 14:27:30] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-21 14:27:30] [INFO] [src/client/client.c:127 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-21 14:27:46] [INFO] [src/client/client.c:45 client_login_menu] 用户登录成功
+[2026-04-21 14:27:50] [DEBUG] [src/client/client.c:171 main] 客户端开始处理命令，输入=ls
+[2026-04-21 14:27:50] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=temp tmp_file.txt big_file.txt tmp demo 
+[2026-04-21 14:27:54] [DEBUG] [src/client/client.c:171 main] 客户端开始处理命令，输入=ls
+[2026-04-21 14:27:54] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=temp tmp_file.txt big_file.txt tmp demo 
+[2026-04-21 14:27:58] [DEBUG] [src/client/client.c:171 main] 客户端开始处理命令，输入=ll
+[2026-04-21 14:27:58] [WARN] [src/client/client_command_handle.c:103 process_command] 无效命令，输入=ll
+[2026-04-21 14:30:28] [INFO] [src/client/client.c:161 main] 客户端请求退出
+[2026-04-21 14:30:28] [INFO] [src/client/client.c:177 main] 客户端套接字已关闭
+[2026-04-21 14:30:32] [INFO] [src/client/client.c:161 main] 客户端请求退出
+[2026-04-21 14:30:32] [INFO] [src/client/client.c:177 main] 客户端套接字已关闭
