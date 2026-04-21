@@ -1,0 +1,4 @@
+[2026-04-19 21:34:52] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-19 21:34:52] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=192.168.7.241，端口=12345
+[2026-04-19 21:34:52] [INFO] [src/client/client.c:80 main] 客户端已连接服务器，地址=192.168.7.241，端口=12345
+[2026-04-19 21:35:33] [WARN] [src/client/client_command_handle.c:97 process_command] 无效命令，输入=ll
