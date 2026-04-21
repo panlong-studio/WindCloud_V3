@@ -35,7 +35,7 @@ int init_database(const char* host, const char* user, const char* pwd, const cha
         return -1;
     }
 
-    // 4. 定义版本二的建表语句（带有 IF NOT EXISTS 和索引优化）
+    // 4. 定义建表语句（带有 IF NOT EXISTS 和索引优化）
     const char *create_users_table = 
         "CREATE TABLE IF NOT EXISTS users ("
         "id INT AUTO_INCREMENT PRIMARY KEY, "
