@@ -32,7 +32,7 @@ void handle_request(int client_fd) {
     // 它就像“这个用户当前会话的小档案”，里面保存：
     // 1. 当前是谁（user_id）
     // 2. 当前在哪个虚拟目录（current_path）
-    // 3. 当前目录节点 id 是多少（parent_id）
+    // 3. 当前目录节点 id 是多少（current_dir_id）
     // 后面 pwd / cd / ls / puts / gets 全都依赖它。
     //
     // 先把整个上下文清零，避免里面残留脏数据。
@@ -44,8 +44,8 @@ void handle_request(int client_fd) {
     // 初始虚拟路径固定为根目录。
     strcpy(ctx.current_path, "/");
 
-    // 根目录约定 parent_id 为 0。
-    ctx.parent_id = 0;
+    // 根目录约定 current_dir_id 为 0。
+    ctx.current_dir_id = 0;
 
     while (1) {
         command_packet_t cmd_packet;
@@ -79,7 +79,7 @@ void handle_request(int client_fd) {
                 if (old_user_id == -1 && ctx.user_id != -1) {// 之前没登录，现在登录成功了
                     LOG_INFO("用户登录成功，客户端fd=%d，用户id=%d", client_fd, ctx.user_id);
                     strcpy(ctx.current_path, "/");
-                    ctx.parent_id = 0;
+                    ctx.current_dir_id = 0;
                 }
                 break;
             }

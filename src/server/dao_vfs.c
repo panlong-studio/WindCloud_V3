@@ -54,13 +54,13 @@ int dao_get_node_by_path(int user_id, const char *path, int *out_id, int *out_ty
 /**
  * @brief 列出指定目录下的所有子节点
  * @param user_id 用户 id
- * @param parent_id 目录节点 id 
+ * @param dir_id 当前目录节点 id
  */
-int dao_list_dir(int user_id, int parent_id, char *output_buf) {
+int dao_list_dir(int user_id, int dir_id, char *output_buf) {
     char sql[256];
     // ls 的本质，是查“当前目录的所有孩子节点”。
-    // parent_id 就是“当前目录节点 id”。
-    snprintf(sql, sizeof(sql), "SELECT file_name, type FROM paths WHERE user_id=%d AND parent_id=%d", user_id, parent_id);
+    // 查询条件里的 paths.parent_id，应该等于当前目录自己的节点 id。
+    snprintf(sql, sizeof(sql), "SELECT file_name, type FROM paths WHERE user_id=%d AND parent_id=%d", user_id, dir_id);
     
     MYSQL_RES *res = db_execute_query(sql);
      if(res==NULL){

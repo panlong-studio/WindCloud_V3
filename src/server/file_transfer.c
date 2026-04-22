@@ -20,12 +20,14 @@
 #define BUFFER_SIZE 4096
 #define FILE_STORE_DIR_NAME "files"
 
-// 这个内部小函数专门决定“服务器真实文件根目录”到底用哪个路径。
-// 这样做的原因很简单：
-// 1. 工程有时从项目根目录启动
-// 2. 有时从 bin 目录启动
-// 3. 两种情况下 test 目录的相对路径不一样
+/**
+ * @brief  获取服务端真实文件仓库的根目录
+ * @return 成功时返回可用的根目录字符串，失败时退回默认 SERVER_BASE_DIR
+ */
 static const char *get_server_base_dir(void) {
+    // 工程可能从项目根目录启动，也可能从 bin 目录启动。
+    // 这两种启动方式下，test 目录的相对路径不同。
+    // 这里优先探测当前运行环境里真实存在的目录，避免后续拼路径时把文件落到错误位置。
     if (access(SERVER_BASE_DIR, F_OK) == 0) {
         return SERVER_BASE_DIR;
     }
@@ -37,18 +39,21 @@ static const char *get_server_base_dir(void) {
     return SERVER_BASE_DIR;
 }
 
-// 真实文件统一放在 test/files 目录下。
-// 每个文件都不用用户原来的名字，而是直接用 sha256 值命名。
-// 这样服务器就能做到：
-// 1. 同内容文件只保存一份
-// 2. 用户目录结构和真实物理文件彻底分离
+/**
+ * @brief  确保真实文件仓库目录 test/files 存在
+ * @param  store_dir 输出参数，用来保存最终可用的真实文件仓库路径
+ * @param  size store_dir 缓冲区大小
+ * @return 成功返回 0，失败返回 -1
+ */
 static int ensure_store_dir(char *store_dir, int size) {
     struct stat st;
     const char *base_dir = get_server_base_dir();
 
-    // 最终真实文件目录固定成：
-    // test/files
-    // 这里不是用户虚拟路径，而是服务器统一的真实文件仓库。
+    // 真实文件统一放在 test/files 目录下。
+    // 每个文件都不用用户原来的名字，而是直接用 sha256 值命名。
+    // 这样服务器就能做到：
+    // 1. 同内容文件只保存一份
+    // 2. 用户目录结构和真实物理文件彻底分离
     if (snprintf(store_dir, size, "%s/%s", base_dir, FILE_STORE_DIR_NAME) >= size) {
         return -1;
     }
@@ -70,8 +75,13 @@ static int ensure_store_dir(char *store_dir, int size) {
     return 0;
 }
 
-// 真实文件路径 = 真实文件目录 + "/" + sha256。
-// 例如：../test/files/3a8f...
+/**
+ * @brief  根据 sha256 值拼接真实文件完整路径
+ * @param  real_path 输出参数，用来保存最终真实文件路径
+ * @param  size real_path 缓冲区大小
+ * @param  sha256sum 64 位十六进制 SHA-256 字符串
+ * @return 成功返回 0，失败返回 -1
+ */
 static int build_store_file_path(char *real_path, int size, const char *sha256sum) {
     char store_dir[MAX_PATH_LEN] = {0};
 
@@ -86,10 +96,14 @@ static int build_store_file_path(char *real_path, int size, const char *sha256su
     return 0;
 }
 
-// 这个函数把“当前目录 + 用户输入文件名”拼成数据库里的逻辑路径。
-// 例如：
-// 当前目录是 /doc，输入 a.txt
-// 最终得到 /doc/a.txt
+/**
+ * @brief  根据当前会话目录和用户输入，拼接数据库中的逻辑全路径
+ * @param  full_path 输出参数，用来保存最终逻辑路径
+ * @param  size full_path 缓冲区大小
+ * @param  ctx 当前客户端会话上下文
+ * @param  arg 用户输入的文件名
+ * @return 成功返回 0，失败返回 -1
+ */
 static int build_full_virtual_path(char *full_path, int size, ClientContext *ctx, const char *arg) {
     if (ctx == NULL || arg == NULL) {
         return -1;
@@ -105,7 +119,7 @@ static int build_full_virtual_path(char *full_path, int size, ClientContext *ctx
     }
 
     // 当前这版 puts/gets 按“当前目录下的一个文件名”处理。
-    // 如果这里放开多级相对路径，那么 parent_id 的计算也要一起改。
+    // 如果这里放开多级相对路径，那么 current_dir_id 的维护方式也要一起改。
     // 为了保持成员 E 代码简单直观，这里先明确限制为单层文件名。
     if (strchr(arg, '/') != NULL) {
         return -1;
@@ -126,9 +140,12 @@ static int build_full_virtual_path(char *full_path, int size, ClientContext *ctx
     return 0;
 }
 
-// 数据库 paths 表里除了 full_path，还要存 file_name。
-// file_name 只保存最后一级名字。
-// 例如 /doc/a.txt -> a.txt
+/**
+ * @brief  从逻辑全路径中提取最后一级文件名
+ * @param  full_path 逻辑全路径，例如 /doc/a.txt
+ * @param  file_name 输出参数，用来保存最后一级文件名，例如 a.txt
+ * @return 无
+ */
 static void extract_file_name(const char *full_path, char *file_name) {
     const char *last_slash = strrchr(full_path, '/');
 
@@ -140,25 +157,105 @@ static void extract_file_name(const char *full_path, char *file_name) {
     strcpy(file_name, last_slash + 1);
 }
 
-// 下载失败时，服务端仍然要回一个 file_packet_t。
-// 客户端就是靠 file_size < 0 判断“服务器没有这个文件”的。
+/**
+ * @brief  检查虚拟文件系统中的名字是否合法
+ * @param  file_name 待校验的目录名或文件名
+ * @return 合法返回 1，不合法返回 0
+ */
+static int is_valid_vfs_name(const char *file_name) {
+    size_t len = strlen(file_name);
+
+    if (len == 0) {
+        return 0;
+    }
+
+    if (len > MAX_VFS_NAME_LEN) {
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * @brief  在下载失败时向客户端发送统一的失败文件包
+ * @param  client_fd 当前客户端套接字
+ * @param  file_name 客户端请求下载的文件名
+ * @return 无
+ */
 static void send_gets_failed_packet(int client_fd, const char *file_name) {
     file_packet_t server_file_packet;
 
+    // 下载协议要求服务端先回一个 file_packet_t。
+    // 客户端就是靠 file_size < 0 判断“服务器没有这个文件”。
+    // 因此这里不能只发普通文本包，否则客户端协议状态会错位。
     init_file_packet(&server_file_packet, CMD_TYPE_GETS, file_name, -1, 0, NULL);
     send_file_packet(client_fd, &server_file_packet);
 }
 
-// 这个小函数只负责“建立用户逻辑文件节点”。
-// need_add_ref 的含义是：
-// 1. 如果是秒传，或者文件记录本来就已存在，需要把 count + 1
-// 2. 如果是刚刚新插入 files 表的第一条记录，count 已经是 1 了，就不用再加
+/**
+ * @brief  检查某个 sha256 对应的真实文件是否完整可复用
+ * @param  sha256sum 64 位十六进制 SHA-256 字符串
+ * @param  expected_size 数据库 files.size 中记录的期望文件大小
+ * @param  local_size 输出参数，用来返回磁盘上当前真实文件的大小
+ * @return 返回 1 表示真实文件存在且大小匹配，可以安全秒传
+ * @return 返回 0 表示真实文件缺失或大小不匹配，应退化为正常上传/续传
+ * @return 返回 -1 表示校验过程本身发生异常，服务端无法继续判断
+ */
+static int check_store_file_ready(const char *sha256sum, off_t expected_size, off_t *local_size) {
+    char real_path[MAX_PATH_LEN] = {0};
+    struct stat st;
+
+    // 先默认成 0，避免调用方在失败分支读到未初始化值。
+    *local_size = 0;
+
+    // 第一步：先把 test/files/<sha256> 的真实路径拼出来。
+    // 如果连路径都无法构造，说明服务端存储环境本身就有问题。
+    if (build_store_file_path(real_path, sizeof(real_path), sha256sum) != 0) {
+        return -1;
+    }
+
+    // 第二步：检查真实文件是否存在。
+    // ENOENT 说明 files 表里虽然有记录，但磁盘实体已经缺失，这时不能秒传，只能退化成正常上传。
+    if (stat(real_path, &st) == -1) {
+        if (errno == ENOENT) {
+            return 0;
+        }
+        return -1;
+    }
+
+    // 如果同名路径存在但不是普通文件，也说明真实仓库状态异常。
+    if (!S_ISREG(st.st_mode)) {
+        return -1;
+    }
+
+    // 第三步：把磁盘上的真实大小回传给调用方。
+    // 后面如果需要降级为正常上传，可以直接复用这个大小作为续传偏移的参考。
+    *local_size = st.st_size;
+
+    // 只有“文件存在 + 大小与 files.size 完全一致”时，才能证明当前真实文件是完整的。
+    // 否则就算数据库有 hash 记录，也不能把它当成可秒传实体继续复用。
+    if (st.st_size == expected_size) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief  为当前用户创建逻辑文件节点，并在需要时增加真实文件引用计数
+ * @param  ctx 当前客户端会话上下文
+ * @param  full_path 逻辑全路径
+ * @param  file_name 最后一级文件名
+ * @param  file_id files 表中的真实文件 id
+ * @param  need_add_ref 是否需要额外给 files.count 加 1
+ * @return 成功返回 0，失败返回 -1
+ */
 static int create_user_file_link(ClientContext *ctx, const char *full_path, const char *file_name,
                                  int file_id, int need_add_ref) {
     // 先插入 paths 记录。
     // 这一步的意义是：
     // 让“这个用户在这个目录下看到了这个文件”。
-    if (dao_create_file_node(ctx->user_id, full_path, ctx->parent_id, file_name, file_id) != 0) {
+    if (dao_create_file_node(ctx->user_id, full_path, ctx->current_dir_id, file_name, file_id) != 0) {
         return -1;
     }
 
@@ -175,10 +272,15 @@ static int create_user_file_link(ClientContext *ctx, const char *full_path, cons
     return 0;
 }
 
-// 上传完整结束后，要把“真实文件”和“逻辑路径”都补进数据库。
-// 这里分两种情况：
-// 1. files 表里本来没有这个 hash：插入新记录，count=1
-// 2. 极少数并发情况下，别的线程可能比我先插入同一个 hash：那我就退化成“补路径 + count+1”
+/**
+ * @brief  在上传数据完整落盘后，补齐 files 表与 paths 表的数据库关系
+ * @param  ctx 当前客户端会话上下文
+ * @param  full_path 逻辑全路径
+ * @param  file_name 最后一级文件名
+ * @param  sha256sum 64 位十六进制 SHA-256 字符串
+ * @param  file_size 真实文件大小
+ * @return 成功返回 0，失败返回 -1
+ */
 static int finish_upload_db_work(ClientContext *ctx, const char *full_path, const char *file_name,
                                  const char *sha256sum, off_t file_size) {
     int file_id = 0;
@@ -334,6 +436,10 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     }
 
     extract_file_name(full_path, file_name);
+    if (!is_valid_vfs_name(file_name)) {
+        send_msg(client_fd, "错误：文件名过长，最大长度为 30");
+        return;
+    }
 
     // 上传前先查一下：当前用户当前目录下是不是已经有同名文件了。
     // 如果有，就不能再插一条重复路径记录。
@@ -372,28 +478,40 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     off_t existed_file_size = 0;
 
     if (dao_file_find_by_sha256(client_file_packet.hash, &existed_file_id, &existed_file_size) == 0) {
-        // 这里说明服务器已经有完全相同内容的真实文件了。
-        // 所以后面根本不用进入 recv 文件内容循环，直接秒传即可。
-        if (create_user_file_link(ctx, full_path, file_name, existed_file_id, 1) != 0) {
-            send_msg(client_fd, "秒传失败：数据库写入失败");
+        off_t store_size = 0;
+        int store_ready = check_store_file_ready(client_file_packet.hash, existed_file_size, &store_size);
+
+        if (store_ready == -1) {
+            send_msg(client_fd, "秒传失败：服务端无法校验真实文件");
             return;
         }
 
-        // 客户端约定：如果服务端回的 file_packet.hash 和本地 hash 一样，
-        // 就把这次上传当成“秒传成功”，直接结束。
-        file_packet_t server_file_packet;
-        init_file_packet(&server_file_packet,
-                         CMD_TYPE_PUTS,
-                         arg,
-                         client_file_packet.file_size,
-                         0,
-                         client_file_packet.hash);
+        if (store_ready == 1) {
+            // 只有数据库记录和真实文件实体都完整时，才能真正秒传。
+            if (create_user_file_link(ctx, full_path, file_name, existed_file_id, 1) != 0) {
+                send_msg(client_fd, "秒传失败：数据库写入失败");
+                return;
+            }
 
-        send_file_packet(client_fd, &server_file_packet);
+            // 客户端约定：如果服务端回的 file_packet.hash 和本地 hash 一样，
+            // 就把这次上传当成“秒传成功”，直接结束。
+            file_packet_t server_file_packet;
+            init_file_packet(&server_file_packet,
+                             CMD_TYPE_PUTS,
+                             arg,
+                             client_file_packet.file_size,
+                             0,
+                             client_file_packet.hash);
 
-        LOG_INFO("秒传成功，客户端fd=%d，用户=%d，逻辑路径=%s，file_id=%d",
-                 client_fd, ctx->user_id, full_path, existed_file_id);
-        return;
+            send_file_packet(client_fd, &server_file_packet);
+
+            LOG_INFO("秒传成功，客户端fd=%d，用户=%d，逻辑路径=%s，file_id=%d",
+                     client_fd, ctx->user_id, full_path, existed_file_id);
+            return;
+        }
+
+        LOG_WARN("检测到真实文件缺失或不完整，转为正常上传，客户端fd=%d，hash=%s，磁盘大小=%lld，期望大小=%lld",
+                 client_fd, client_file_packet.hash, (long long)store_size, (long long)existed_file_size);
     }
 
     // ==============================

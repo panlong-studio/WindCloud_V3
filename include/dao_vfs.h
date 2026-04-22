@@ -8,7 +8,7 @@ int dao_get_node_by_path(int user_id,const char *path,int *out_id,int *out_type)
 
 //获取目录下所有文件和文件夹的名字，用空格拼接存入 output_buf 中
 //返回值：拼接了多少个字符，0表示空目录，-1表示查询失败
-int dao_list_dir(int user_id,int parent_id,char*output_buf);
+int dao_list_dir(int user_id,int dir_id,char*output_buf);
 
 //在数据库中创建一个新节点（type=0 是文件，type=1 是目录）
 int dao_create_node(int user_id,const char*full_path,

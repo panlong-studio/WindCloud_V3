@@ -37,6 +37,28 @@ int dao_file_insert(const char *sha256sum, off_t file_size, int *out_file_id);
 int dao_file_add_ref_count(int file_id);
 
 /**
+ * @brief  将 files 表中某个文件的引用计数减 1
+ * @param  file_id files 表主键 id
+ * @return 成功返回 0，失败返回 -1
+ */
+int dao_file_sub_ref_count(int file_id);
+
+/**
+ * @brief  查询 files 表中某个文件当前的引用计数
+ * @param  file_id files 表主键 id
+ * @param  out_ref_count 输出参数，保存 count
+ * @return 成功返回 0，失败返回 -1
+ */
+int dao_file_get_ref_count(int file_id, int *out_ref_count);
+
+/**
+ * @brief  删除 files 表中的一条真实文件记录
+ * @param  file_id files 表主键 id
+ * @return 成功返回 0，失败返回 -1
+ */
+int dao_file_delete(int file_id);
+
+/**
  * @brief  根据 files 表 id 取出真实文件的 SHA-256 和大小
  * @param  file_id files 表主键 id
  * @param  sha256sum_out 输出参数，用来接收 64 位十六进制 SHA-256 字符串

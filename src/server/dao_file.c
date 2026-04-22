@@ -85,6 +85,67 @@ int dao_file_add_ref_count(int file_id) {
 }
 
 /**
+ * @brief  引用计数减 1
+ * @param  file_id files 表主键 id
+ * @return 成功返回 0，失败返回 -1
+ */
+int dao_file_sub_ref_count(int file_id) {
+    char sql[256];
+
+    // 删除逻辑文件节点时，真实文件的引用数也要同步减 1。
+    // 这里加上 count>0 保护，避免计数被减成负数。
+    snprintf(sql, sizeof(sql),
+        "UPDATE files SET count=count-1 WHERE id=%d AND count>0",
+        file_id);
+
+    return db_execute_update(sql);
+}
+
+/**
+ * @brief  查询 files 表中某个文件当前的引用计数
+ * @param  file_id files 表主键 id
+ * @param  out_ref_count 输出参数，保存 count
+ * @return 成功返回 0，失败返回 -1
+ */
+int dao_file_get_ref_count(int file_id, int *out_ref_count) {
+    char sql[256];
+
+    snprintf(sql, sizeof(sql),
+        "SELECT count FROM files WHERE id=%d",
+        file_id);
+
+    MYSQL_RES *res = db_execute_query(sql);
+    if (res == NULL) {
+        return -1;
+    }
+
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row == NULL) {
+        mysql_free_result(res);
+        return -1;
+    }
+
+    *out_ref_count = atoi(row[0]);
+    mysql_free_result(res);
+    return 0;
+}
+
+/**
+ * @brief  删除 files 表中的一条真实文件记录
+ * @param  file_id files 表主键 id
+ * @return 成功返回 0，失败返回 -1
+ */
+int dao_file_delete(int file_id) {
+    char sql[256];
+
+    snprintf(sql, sizeof(sql),
+        "DELETE FROM files WHERE id=%d",
+        file_id);
+
+    return db_execute_update(sql);
+}
+
+/**
  * @brief  根据 file_id 取出 SHA-256 和文件大小
  * @param  file_id files 表主键 id
  * @param  sha256sum_out 输出参数，保存 64 位十六进制字符串

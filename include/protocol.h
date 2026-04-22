@@ -10,11 +10,15 @@
 // 文件名也统一使用固定长度数组。
 #define FILE_NAME_LEN 256
 
+// paths.file_name 在数据库中的上限是 30。
+// 客户端和服务端共用这个限制，避免运行到 SQL 插入阶段才暴露错误。
+#define MAX_VFS_NAME_LEN 30
+
 //用户的会话状态结构体
 typedef struct{
     int user_id;//用户 ID，登录后才有值
     char current_path[256];//当前虚拟路径
-    int parent_id;//父目录 ID，根目录的 parent_id 是 0
+    int current_dir_id;//当前所在目录的节点 ID，根目录约定为 0
 }ClientContext;
 
 
