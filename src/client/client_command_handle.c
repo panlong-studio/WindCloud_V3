@@ -52,7 +52,7 @@ static int recv_server_reply(int sock_fd) {
         return -1;
     }
 
-    if(strstr(reply_packet.data, "success") != NULL) {
+    if(strstr(reply_packet.data, "成功") != NULL) {
         return 1;
     }
 

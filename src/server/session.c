@@ -70,13 +70,14 @@ void handle_request(int client_fd) {
 
         switch (cmd_type) {
             case CMD_TYPE_LOGIN: {
-                int old_user_id = ctx.user_id;
+                int old_user_id = ctx.user_id;// 记录登录前的 user_id，看看登录后有没有变化
                 handle_login(client_fd, cmd_packet.data, &ctx.user_id);
 
                 // 登录成功后，把会话路径重新放回根目录。
                 // 这样无论这个连接之前是什么状态，一旦登录成功，
                 // 后续目录类命令都从 "/" 开始，逻辑最清楚。
-                if (old_user_id == -1 && ctx.user_id != -1) {
+                if (old_user_id == -1 && ctx.user_id != -1) {// 之前没登录，现在登录成功了
+                    LOG_INFO("用户登录成功，客户端fd=%d，用户id=%d", client_fd, ctx.user_id);
                     strcpy(ctx.current_path, "/");
                     ctx.parent_id = 0;
                 }
@@ -84,15 +85,14 @@ void handle_request(int client_fd) {
             }
 
             case CMD_TYPE_REGISTER: {
-                int old_user_id = ctx.user_id;
-                handle_register(client_fd, cmd_packet.data, &ctx.user_id);
+                int temp_new_id=-1;
+                handle_register(client_fd, cmd_packet.data, &temp_new_id);
 
                 // 当前注册成功后，客户端仍然需要再执行一次 login。
-                // 这里之所以仍然保留“注册后写入 ctx 的处理”，
-                // 是为了兼容未来可能出现的“注册即登录”功能扩展。
-                if (old_user_id == -1 && ctx.user_id != -1) {
-                    strcpy(ctx.current_path, "/");
-                    ctx.parent_id = 0;
+                if(temp_new_id!=-1){
+                    LOG_INFO("新用户注册成功，客户端fd=%d，新用户id=%d", client_fd, temp_new_id);
+                } else {
+                    LOG_WARN("用户注册失败，客户端fd=%d", client_fd);
                 }
                 break;
             }
