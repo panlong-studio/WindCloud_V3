@@ -7,8 +7,17 @@
 #include "file_transfer.h"
 #include "auth.h"
 
+/**
+ * @brief  向客户端发送一条普通文本响应
+ * @param  client_fd 当前客户端套接字
+ * @param  msg 要发送的文本消息
+ * @return 无
+ */
 void send_msg(int client_fd, const char *msg) {
     command_packet_t reply_packet;
+
+    // 服务端的普通响应统一封装成 CMD_TYPE_REPLY。
+    // 客户端收到后会按普通文本路径直接打印。
     init_command_packet(&reply_packet, CMD_TYPE_REPLY, msg);
 
     if (send_command_packet(client_fd, &reply_packet) == -1) {
@@ -18,6 +27,11 @@ void send_msg(int client_fd, const char *msg) {
     LOG_DEBUG("响应发送成功，客户端fd=%d，消息=%s", client_fd, msg);
 }
 
+/**
+ * @brief  从普通命令包中解析命令类型
+ * @param  cmd_packet 已接收的普通命令包
+ * @return 成功返回命令类型，失败返回 CMD_TYPE_INVALID
+ */
 static cmd_type_t get_packet_cmd_type(const command_packet_t *cmd_packet) {
     if (cmd_packet == NULL) {
         return CMD_TYPE_INVALID;
@@ -25,6 +39,11 @@ static cmd_type_t get_packet_cmd_type(const command_packet_t *cmd_packet) {
     return (cmd_type_t)cmd_packet->cmd_type;
 }
 
+/**
+ * @brief  处理一个客户端连接上的完整请求生命周期
+ * @param  client_fd 当前客户端套接字
+ * @return 无
+ */
 void handle_request(int client_fd) {
     ClientContext ctx;
 
@@ -68,6 +87,8 @@ void handle_request(int client_fd) {
             continue;
         }
 
+        // 进入统一命令分发。
+        // 每条命令都会基于当前会话上下文 ctx 继续处理。
         switch (cmd_type) {
             case CMD_TYPE_LOGIN: {
                 int old_user_id = ctx.user_id;// 记录登录前的 user_id，看看登录后有没有变化

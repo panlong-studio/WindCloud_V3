@@ -13,9 +13,11 @@
 #include "path_utils.h"
 #include "sha256_utils.h"
 
-// 函数作用：线程池里的工作线程入口函数。
-// 参数 arg：实际上传入的是 worker_arg_t*，里面保存了线程池指针和线程编号。
-// 返回值：线程退出时返回 NULL。
+/**
+ * @brief  线程池里的工作线程入口函数
+ * @param  arg 实际上传入的是 worker_arg_t*，里面保存线程池指针和线程编号
+ * @return 线程退出时返回 NULL
+ */
 void* thread_func(void *arg) {
     // 先把 void* 转回真实类型。
     worker_arg_t *worker_arg = (worker_arg_t *)arg;

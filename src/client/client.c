@@ -13,6 +13,11 @@
 #include "client_command_handle.h"   // 新增头文件
 #include "log.h"
 
+/**
+ * @brief  显示客户端未登录菜单，并处理登录/注册流程
+ * @param  sock_fd 客户端套接字
+ * @return 成功进入已登录状态返回 0，失败返回 -1
+ */
 static int client_login_menu(int sock_fd){
     char input[512];
     printf("\n================================\n");
@@ -39,6 +44,8 @@ static int client_login_menu(int sock_fd){
             exit(0);
         }
 
+        // 未登录阶段只接受 login / register / quit。
+        // 其余输入会被忽略，继续停留在当前菜单循环中。
         if(strncmp(input,"login ",6)==0||strncmp(input,"register ",9)==0){
             int ret=process_command(sock_fd,input);
             if(ret==1&&strncmp(input,"login ",6)==0){
@@ -59,6 +66,14 @@ static int client_login_menu(int sock_fd){
     }
 }
 
+/**
+ * @brief  从配置文件读取指定键，读不到时回退到默认值
+ * @param  key 配置项名称
+ * @param  value 输出参数，用来保存最终值
+ * @param  value_sz value 缓冲区大小
+ * @param  default_value 默认值
+ * @return 无
+ */
 static void load_value_or_default(const char *key, char *value, size_t value_sz, const char *default_value) {
     char tmp[256] = {0};
 
@@ -70,9 +85,17 @@ static void load_value_or_default(const char *key, char *value, size_t value_sz,
     snprintf(value, value_sz, "%s", default_value);
 }
 
+/**
+ * @brief  初始化日志，并兼容不同启动目录下的日志相对路径
+ * @param  level_str 日志级别字符串
+ * @param  log_file 原始日志文件路径
+ * @return 无
+ */
 static void init_log_with_fallback(const char *level_str, const char *log_file) {
     const char *real_log_file = log_file;
 
+    // 工程从不同目录启动时，../log 和 ./log 哪个可用并不固定。
+    // 这里按实际存在的目录修正日志路径，避免因为路径问题导致日志初始化失败。
     if (log_file != NULL && strncmp(log_file, "../", 3) == 0) {
         if (access("../log", F_OK) == 0) {
             real_log_file = log_file;
@@ -88,10 +111,12 @@ static void init_log_with_fallback(const char *level_str, const char *log_file) 
     init_log(level_str, NULL);
 }
 
-// 函数作用：客户端主函数。
-// 参数 argc：命令行参数个数，这里没有实际使用。
-// 参数 argv：命令行参数数组，这里没有实际使用。
-// 返回值：程序正常结束时返回 0。
+/**
+ * @brief  客户端主函数，负责初始化连接、登录菜单和命令循环
+ * @param  argc 命令行参数个数
+ * @param  argv 命令行参数数组
+ * @return 程序正常结束返回 0，失败返回 -1
+ */
 int main(int argc, char *argv[])
 {
     // 这两行只是为了消除“未使用参数”警告。
@@ -136,6 +161,7 @@ int main(int argc, char *argv[])
     char input[512];
 
     // 客户端进入命令循环。
+    // 从这里开始，所有已登录命令都会统一交给 process_command 处理。
     while (1) {
         // 打印命令提示符。
         printf("> ");

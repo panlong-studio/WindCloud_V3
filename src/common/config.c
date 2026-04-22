@@ -5,10 +5,12 @@
 #include "log.h"
 
 
-// 函数作用：从 config/config.ini 中读取指定 key 对应的 value。
-// 参数 key：要查找的键，例如 "ip"、"port"。
-// 参数 value：输出参数，用来保存查找到的值。
-// 返回值：找到返回 0，找不到或打开文件失败返回 -1。
+/**
+ * @brief  从 config.ini 中读取指定 key 对应的 value
+ * @param  key 要查找的键，例如 "ip"、"port"
+ * @param  value 输出参数，用来保存查找到的值
+ * @return 找到返回 0，找不到或打开文件失败返回 -1
+ */
 int get_target(char *key, char *value) {
     static const char *config_paths[] = {
         "../config/config.ini",
@@ -16,7 +18,8 @@ int get_target(char *key, char *value) {
     };
     FILE *file = NULL;
 
-    // 以只读方式打开配置文件。
+    // 工程既可能从项目根目录启动，也可能从 bin 目录启动。
+    // 因此这里顺序尝试两个相对路径，尽量兼容不同启动位置。
     for (size_t idx = 0; idx < sizeof(config_paths) / sizeof(config_paths[0]); ++idx) {
         file = fopen(config_paths[idx], "r");
         if (file != NULL) {
@@ -48,6 +51,7 @@ int get_target(char *key, char *value) {
         }
 
         // 以 = 为分隔符，把一行拆成 key 和 value 两部分。
+        // 当前配置格式很简单，不支持更复杂的 section 语法。
         char *line_key = strtok(line, "=");
 
         // line_key 不为空，而且和目标 key 相同，才继续向下处理。

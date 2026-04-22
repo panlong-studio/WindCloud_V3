@@ -10,10 +10,18 @@
 
 #define BUFFER_SIZE 4096
 
-// 下载阶段会持续把网络数据写入本地文件，这里保证每一块都写完整。
+/**
+ * @brief  保证把一段数据完整写入本地文件
+ * @param  fd 本地文件描述符
+ * @param  buf 待写入数据起始地址
+ * @param  len 本次需要写入的总字节数
+ * @return 成功返回 0，失败返回 -1
+ */
 static int write_file_full(int fd, const char *buf, int len) {
     int total = 0;
 
+    // 普通 write 可能一次只写入部分字节。
+    // 下载时必须保证本轮收到的网络数据全部落盘，否则文件内容会错位。
     while (total < len) {
         int ret = write(fd, buf + total, len - total);
         if (ret <= 0) {
@@ -25,9 +33,16 @@ static int write_file_full(int fd, const char *buf, int len) {
     return 0;
 }
 
+/**
+ * @brief  处理 gets 命令，支持普通下载与断点续传
+ * @param  sock_fd 客户端套接字
+ * @param  arg 用户输入的文件名
+ * @return 成功返回 0，失败返回 -1 或 0
+ */
 int handle_gets_command(int sock_fd, const char *arg) {
     LOG_INFO("客户端请求下载文件，文件=%s", arg);
 
+    // 第一步：先发送一个普通命令包，告诉服务端“我要下载哪个逻辑文件”。
     command_packet_t cmd_packet;
     init_command_packet(&cmd_packet, CMD_TYPE_GETS, arg);
 
@@ -37,6 +52,8 @@ int handle_gets_command(int sock_fd, const char *arg) {
         return 0;
     }
 
+    // 第二步：接收服务端回的文件信息包。
+    // 这里会带回文件总大小，客户端据此决定是否续传。
     file_packet_t server_file_packet;
     if (recv_file_packet(sock_fd, &server_file_packet) <= 0) {
         printf("接收文件信息失败\n");
@@ -50,6 +67,7 @@ int handle_gets_command(int sock_fd, const char *arg) {
         return 0;
     }
 
+    // 第三步：检查本地是否已经存在同名文件，并据此决定续传偏移。
     struct stat st;
     off_t local_size = 0;
     off_t request_offset = 0;
@@ -74,6 +92,8 @@ int handle_gets_command(int sock_fd, const char *arg) {
               (long long)server_file_packet.file_size,
               (long long)request_offset);
 
+    // 第四步：把“客户端本地已拥有的进度”回传给服务端。
+    // 服务端后续会从这个偏移位置开始继续发送。
     file_packet_t client_file_packet;
     init_file_packet(&client_file_packet,
                      CMD_TYPE_GETS,
@@ -94,6 +114,7 @@ int handle_gets_command(int sock_fd, const char *arg) {
         return 0;
     }
 
+    // 第五步：准备本地文件句柄，真正开始接收文件正文。
     int fd = open(arg, O_WRONLY | O_CREAT, 0666);
     if (fd == -1) {
         perror("创建文件失败");
@@ -121,8 +142,11 @@ int handle_gets_command(int sock_fd, const char *arg) {
     }
 
     char buf[BUFFER_SIZE];
+
+    // remaining 表示这次还需要从网络再收多少字节。
     off_t remaining = server_file_packet.file_size - request_offset;
 
+    // 第六步：循环收网络数据并落盘，直到 remaining 归零。
     while (remaining > 0) {
         int once = BUFFER_SIZE;
         if (remaining < BUFFER_SIZE) {
@@ -149,6 +173,7 @@ int handle_gets_command(int sock_fd, const char *arg) {
         remaining -= once;
     }
 
+    // 第七步：全部写完后关闭本地文件并提示下载成功。
     close(fd);
     printf("下载成功: %s (%ld 字节)\n", arg, (long)server_file_packet.file_size);
     LOG_INFO("下载成功，文件=%s，大小=%lld", arg, (long long)server_file_packet.file_size);

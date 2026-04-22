@@ -9,11 +9,13 @@
 #include "error_check.h"
 #include "log.h"
 
-// 函数作用：创建客户端 socket，并主动连接到服务端。
-// 参数 listen_fd：输出参数，用来保存创建好的 socket fd。
-// 参数 ip：服务端 IP 地址字符串。
-// 参数 port：服务端端口字符串。
-// 返回值：无。
+/**
+ * @brief  创建客户端 socket 并主动连接到服务端
+ * @param  listen_fd 输出参数，用来保存创建好的 socket fd
+ * @param  ip 服务端 IP 地址字符串
+ * @param  port 服务端端口字符串
+ * @return 无
+ */
 void init_socket(int* listen_fd,char* ip,char* port){
     // 创建 TCP socket。
     *listen_fd=socket(AF_INET, SOCK_STREAM, 0);
@@ -38,4 +40,3 @@ void init_socket(int* listen_fd,char* ip,char* port){
     ERROR_CHECK(ret, -1, "连接服务端");
     LOG_INFO("客户端连接成功，地址=%s，端口=%s", ip, port);
 }
-

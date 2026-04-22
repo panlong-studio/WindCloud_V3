@@ -283,6 +283,12 @@ void handle_pwd(int client_fd, ClientContext *ctx) {
     send_msg(client_fd, ctx->current_path);
 }
 
+/**
+ * @brief  处理 ls 命令，列出当前逻辑目录下的内容
+ * @param  client_fd 当前客户端套接字
+ * @param  ctx 当前客户端会话上下文
+ * @return 无
+ */
 void handle_ls(int client_fd, ClientContext *ctx) {
     char buf[4096] = {0};
     int ret = dao_list_dir(ctx->user_id, ctx->current_dir_id, buf);
@@ -299,6 +305,13 @@ void handle_ls(int client_fd, ClientContext *ctx) {
     }
 }
 
+/**
+ * @brief  处理 cd 命令，切换当前会话所在逻辑目录
+ * @param  client_fd 当前客户端套接字
+ * @param  ctx 当前客户端会话上下文
+ * @param  arg 用户输入的目录参数
+ * @return 无
+ */
 void handle_cd(int client_fd, ClientContext *ctx, char *arg) {
     if (arg == NULL || arg[0] == '\0') {
         send_msg(client_fd, "cd 命令缺少参数");
@@ -307,16 +320,16 @@ void handle_cd(int client_fd, ClientContext *ctx, char *arg) {
 
     char target_path[256] = {0};
 
-    // 处理 cd .. 
+    // cd .. 表示回到当前目录的父目录。
     if (strcmp(arg, "..") == 0) {
         get_parent_path(ctx->current_path, target_path);
     } 
-    // 处理 cd .
+    // cd . 表示留在当前目录，不需要改上下文。
     else if (strcmp(arg, ".") == 0) {
         send_msg(client_fd, "进入目录成功");
         return;
     } 
-    // 处理普通目录或绝对路径
+    // 其它情况按“普通目录名或绝对路径”处理。
     else {
         build_abs_path(ctx->current_path, arg, target_path);
     }
@@ -333,7 +346,9 @@ void handle_cd(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
-    // 更新 Context 状态
+    // 只有数据库确认目标路径存在且确实是目录，才更新会话上下文。
+    // current_path 负责给用户展示当前位置；
+    // current_dir_id 负责后续 ls / mkdir / touch / puts 等命令在数据库里定位当前目录节点。
     strcpy(ctx->current_path, target_path);
     ctx->current_dir_id = target_id;
     
@@ -341,6 +356,13 @@ void handle_cd(int client_fd, ClientContext *ctx, char *arg) {
     send_msg(client_fd, "进入目录成功");
 }
 
+/**
+ * @brief  处理 mkdir 命令，在当前目录下创建子目录
+ * @param  client_fd 当前客户端套接字
+ * @param  ctx 当前客户端会话上下文
+ * @param  arg 用户输入的目录名
+ * @return 无
+ */
 void handle_mkdir(int client_fd, ClientContext *ctx, char *arg) {
     char target_path[256] = {0};
     char file_name[64] = {0};
@@ -353,6 +375,8 @@ void handle_mkdir(int client_fd, ClientContext *ctx, char *arg) {
     build_abs_path(ctx->current_path, arg, target_path);
     extract_file_name(target_path, file_name);
 
+    // 目录名长度限制必须在进数据库前拦截。
+    // 否则可能出现服务端前面已经做了部分处理，最后才在 SQL 层失败的脏状态。
     if (!is_valid_vfs_name(file_name)) {
         send_msg(client_fd, "错误：文件名或目录名过长，最大长度为 30");
         return;
@@ -364,6 +388,7 @@ void handle_mkdir(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
+    // type=1 表示这是一个目录节点。
     if (dao_create_node(ctx->user_id, target_path, ctx->current_dir_id, file_name, 1) == 0) {
         send_msg(client_fd, "创建文件夹成功");
     } else {
@@ -466,7 +491,13 @@ void handle_rm(int client_fd, ClientContext *ctx, char *arg) {
     }
 }
 
-// 新增功能：删除目录
+/**
+ * @brief  处理 rmdir 命令，删除当前目录下的空目录
+ * @param  client_fd 当前客户端套接字
+ * @param  ctx 当前客户端会话上下文
+ * @param  arg 用户输入的目录名
+ * @return 无
+ */
 void handle_rmdir(int client_fd, ClientContext *ctx, char *arg) {
     char target_path[256] = {0};
 
@@ -488,7 +519,8 @@ void handle_rmdir(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
-    // 检查目录是否为空
+    // rmdir 只允许删除空目录。
+    // 如果目录里还有内容，直接删除会把目录树结构破坏掉，因此必须先查空目录状态。
     int empty_status=dao_is_dir_empty(ctx->user_id,target_id);
 
     if(empty_status==-1){
@@ -500,7 +532,7 @@ void handle_rmdir(int client_fd, ClientContext *ctx, char *arg) {
         send_msg(client_fd, "目标目录非空，请先删除目录下的内容");
         return;
     }
-    //只有empty_status==1 目录为空时才会走到这里继续删除
+    // 只有 empty_status == 1，也就是数据库确认“该目录没有子节点”时，才真正执行删除。
     if(dao_delete_node(ctx->user_id,target_id)==0){
         LOG_INFO("rmdir命令删除目录成功，客户端fd=%d，目标路径=%s", client_fd, target_path);
         send_msg(client_fd, "删除目录成功");

@@ -10,11 +10,13 @@
 #include "error_check.h"
 #include "log.h"
 
-// 函数作用：创建服务端监听 socket，并完成 bind + listen。
-// 参数 fd：输出参数，用来保存监听 socket。
-// 参数 ip：监听 IP 地址字符串。
-// 参数 port：监听端口字符串。
-// 返回值：无。
+/**
+ * @brief  创建服务端监听 socket，并完成 bind + listen
+ * @param  fd 输出参数，用来保存监听 socket
+ * @param  ip 监听 IP 地址字符串
+ * @param  port 监听端口字符串
+ * @return 无
+ */
 void init_socket(int* fd,char* ip,char* port){
     // 创建 TCP 监听 socket。
     *fd=socket(AF_INET,SOCK_STREAM,0);

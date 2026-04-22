@@ -5,6 +5,14 @@
 #include "db_init.h"
 #include "log.h"
 
+/**
+ * @brief  初始化数据库与核心数据表
+ * @param  host MySQL 主机地址
+ * @param  user MySQL 用户名
+ * @param  pwd MySQL 密码
+ * @param  db_name 要初始化的数据库名
+ * @return 成功返回 0，失败返回 -1
+ */
 int init_database(const char* host, const char* user, const char* pwd, const char* db_name) {
     MYSQL *conn = mysql_init(NULL);
     if (conn == NULL) {
@@ -35,7 +43,10 @@ int init_database(const char* host, const char* user, const char* pwd, const cha
         return -1;
     }
 
-    // 4. 定义建表语句（带有 IF NOT EXISTS 和索引优化）
+    // 4. 定义建表语句。
+    // users 保存认证信息；
+    // files 保存真实文件实体元数据；
+    // paths 保存“每个用户在虚拟目录里看见了什么”。
     const char *create_users_table = 
         "CREATE TABLE IF NOT EXISTS users ("
         "id INT AUTO_INCREMENT PRIMARY KEY, "
@@ -65,7 +76,8 @@ int init_database(const char* host, const char* user, const char* pwd, const cha
         "INDEX idx_user_parent (user_id, parent_id)"
         ") ENGINE=InnoDB;";
 
-    // 5. 依次执行建表
+    // 5. 依次执行建表。
+    // 只要有一张核心表创建失败，就直接终止启动，避免服务端在残缺表结构上继续运行。
     if (mysql_query(conn, create_users_table)) {
         LOG_ERROR("创建 users 表失败: %s", mysql_error(conn));
         mysql_close(conn);
@@ -86,7 +98,8 @@ int init_database(const char* host, const char* user, const char* pwd, const cha
 
     LOG_INFO("数据库 [%s] 及数据表初始化校验完成", db_name);
 
-    // 6. 初始化完毕，关闭这个临时连接（工作线程后续会创建自己的连接）
+    // 6. 初始化完毕，关闭这个临时连接。
+    // 真正处理业务请求时，工作线程会从 db_pool 里拿独立连接继续工作。
     mysql_close(conn);
     return 0;
 }

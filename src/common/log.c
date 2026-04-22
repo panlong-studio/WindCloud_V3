@@ -12,9 +12,11 @@ static FILE* g_log_fp=NULL;
 // g_log_mutex 用来保护多线程同时写日志。
 static pthread_mutex_t g_log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// 函数作用：把字符串日志级别转换成内部整数级别。
-// 参数 level_str：例如 "DEBUG"、"INFO"。
-// 返回值：对应的整数级别；如果无法识别，默认返回 INFO。
+/**
+ * @brief  把字符串日志级别转换成内部整数级别
+ * @param  level_str 日志级别字符串，例如 "DEBUG"、"INFO"
+ * @return 成功返回对应整数级别，无法识别时默认返回 INFO
+ */
 static int level_to_int(const char* level_str){
     if(strcasecmp(level_str,"DEBUG")==0) return LOG_LEVEL_DEBUG;
     if(strcasecmp(level_str,"INFO")==0)  return LOG_LEVEL_INFO;
@@ -23,9 +25,11 @@ static int level_to_int(const char* level_str){
     return LOG_LEVEL_INFO;
 }
 
-// 函数作用：把整数级别转换成字符串描述。
-// 参数 level：整数级别。
-// 返回值：对应的字符串常量。
+/**
+ * @brief  把整数日志级别转换成字符串名称
+ * @param  level 整数日志级别
+ * @return 返回对应的字符串常量
+ */
 static const char* level_to_name(int level){
     switch(level){
         case LOG_LEVEL_DEBUG: return "DEBUG";
@@ -36,10 +40,12 @@ static const char* level_to_name(int level){
     }
 }
 
-// 函数作用：初始化日志系统。
-// 参数 level_str：初始日志级别字符串。
-// 参数 log_file：日志文件路径；如果传 NULL，则日志输出到控制台。
-// 返回值：成功返回 0，失败返回 -1。
+/**
+ * @brief  初始化日志系统
+ * @param  level_str 初始日志级别字符串
+ * @param  log_file 日志文件路径；如果传 NULL，则输出到控制台
+ * @return 成功返回 0，失败返回 -1
+ */
 int init_log(const char* level_str, const char* log_file){
     // 如果调用者传了日志级别字符串，就把它转换成内部级别。
     if(level_str){
@@ -48,6 +54,7 @@ int init_log(const char* level_str, const char* log_file){
     
     // 如果传了日志文件路径，就打开文件。
     if(log_file){
+        // 采用追加模式打开，这样多次启动进程时不会覆盖旧日志。
         g_log_fp=fopen(log_file,"a");
         if(!g_log_fp){
             fprintf(stderr, "打开日志文件失败，错误码=%d\n", errno);
@@ -61,9 +68,10 @@ int init_log(const char* level_str, const char* log_file){
 }
 
 
-// 函数作用：关闭日志系统。
-// 参数：无。
-// 返回值：无。
+/**
+ * @brief  关闭日志系统并释放相关资源
+ * @return 无
+ */
 void close_log(){
     // 如果日志输出的是普通文件，就关闭它。
     // 如果输出的是 stdout，就不需要 fclose(stdout)。
@@ -76,14 +84,16 @@ void close_log(){
 }
 
 
-// 函数作用：真正执行日志写入。
-// 参数 level：本条日志的级别。
-// 参数 file：调用日志的源文件名。
-// 参数 line：调用日志的源代码行号。
-// 参数 func：调用日志的函数名。
-// 参数 fmt：格式字符串，和 printf 类似。
-// 参数 ...：可变参数列表。
-// 返回值：无。
+/**
+ * @brief  按统一格式写一条日志
+ * @param  level 本条日志的级别
+ * @param  file 调用日志的源文件名
+ * @param  line 调用日志的源代码行号
+ * @param  func 调用日志的函数名
+ * @param  fmt 格式字符串
+ * @param  ... 可变参数列表
+ * @return 无
+ */
 void log_write(int level, const char* file, int line, const char* func, const char* fmt, ...){
     // 如果本条日志级别低于当前全局级别，就直接丢弃。
     if(level<g_log_level){
@@ -96,7 +106,7 @@ void log_write(int level, const char* file, int line, const char* func, const ch
         g_log_fp=stdout;
     }
 
-    // 获取当前时间戳。
+    // 获取当前时间戳，并把它转换成可读文本。
     time_t now=time(NULL);
 
     // 把时间戳转换成本地时间结构体。
@@ -127,6 +137,7 @@ void log_write(int level, const char* file, int line, const char* func, const ch
     pthread_mutex_lock(&g_log_mutex);
 
     // 按统一格式写日志。
+    // 统一输出“时间 + 级别 + 源码位置 + 正文”，方便后续排查跨模块链路问题。
     fprintf(g_log_fp,"[%s] [%s] [%s:%d %s] %s\n",time_str,level_to_name(level),file,line,func,log_msg);
 
     // fflush 让日志尽快真正落到输出设备上。

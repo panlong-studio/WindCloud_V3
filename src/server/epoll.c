@@ -2,10 +2,12 @@
 #include "epoll.h"
 #include "error_check.h"
 
-// 函数作用：把一个 fd 加入 epoll 监听集合。
-// 参数 epfd：epoll 实例 fd。
-// 参数 fd：要加入监听的目标 fd。
-// 返回值：无。
+/**
+ * @brief  把一个文件描述符加入 epoll 监听集合
+ * @param  epfd epoll 实例 fd
+ * @param  fd 要加入监听的目标 fd
+ * @return 无
+ */
 void add_epoll_fd(int epfd,int fd){
     // evt 用来描述“我要监听什么事件”。
     struct epoll_event evt;
@@ -21,10 +23,12 @@ void add_epoll_fd(int epfd,int fd){
     ERROR_CHECK(ret,-1,"添加 epoll 监听");
 }
 
-// 函数作用：把一个 fd 从 epoll 监听集合中移除。
-// 参数 epfd：epoll 实例 fd。
-// 参数 fd：要移除的目标 fd。
-// 返回值：无。
+/**
+ * @brief  把一个文件描述符从 epoll 监听集合中移除
+ * @param  epfd epoll 实例 fd
+ * @param  fd 要移除的目标 fd
+ * @return 无
+ */
 void del_epoll_fd(int epfd,int fd){
     // 删除时虽然第四个参数理论上可以忽略，
     // 但这里仍然准备一个结构体，写法更统一。

@@ -27,6 +27,8 @@ int dao_file_find_by_sha256(const char *sha256sum, int *out_file_id, off_t *out_
         return -1;
     }
 
+    // files.sha256sum 是唯一键。
+    // 因此同一个 hash 最多只会查到一条记录，这里直接取第一行即可。
     MYSQL_ROW row = mysql_fetch_row(res);
     if (row == NULL) {
         mysql_free_result(res);
@@ -119,6 +121,8 @@ int dao_file_get_ref_count(int file_id, int *out_ref_count) {
         return -1;
     }
 
+    // count 是删除回收链路里的关键字段。
+    // 后续 rm 会根据这个值判断：是只删逻辑节点，还是继续回收真实文件实体。
     MYSQL_ROW row = mysql_fetch_row(res);
     if (row == NULL) {
         mysql_free_result(res);
@@ -138,6 +142,8 @@ int dao_file_get_ref_count(int file_id, int *out_ref_count) {
 int dao_file_delete(int file_id) {
     char sql[256];
 
+    // 只有在 count 已经归零时，业务层才应该调用这里。
+    // 这条 SQL 的职责很单一：把“无人引用的真实文件元数据”从 files 表中删掉。
     snprintf(sql, sizeof(sql),
         "DELETE FROM files WHERE id=%d",
         file_id);
@@ -170,6 +176,7 @@ int dao_file_get_info_by_id(int file_id, char *sha256sum_out, off_t *out_file_si
         return -1;
     }
 
+    // files.id 是主键，因此这里同样只会命中一条记录。
     MYSQL_ROW row = mysql_fetch_row(res);
     if (row == NULL) {
         mysql_free_result(res);

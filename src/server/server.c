@@ -31,15 +31,25 @@
 // 子进程的 epoll 监听到这个字节后，就进入退出流程。
 int pipe_fd[2];
 
-// 函数作用：SIGINT 的信号处理函数。
-// 参数 num：信号编号，这里通常是 SIGINT。
-// 返回值：无。
+/**
+ * @brief  SIGINT 信号处理函数，通知子进程退出
+ * @param  num 信号编号
+ * @return 无
+ */
 void func(int num){
     (void)num;
     // 往管道里写一个字节，通知子进程该退出了。
     write(pipe_fd[1],"1",1);
 }
 
+/**
+ * @brief  从配置文件读取指定键，读不到时回退到默认值
+ * @param  key 配置项名称
+ * @param  value 输出参数，用来保存最终值
+ * @param  value_sz value 缓冲区大小
+ * @param  default_value 默认值
+ * @return 无
+ */
 static void load_value_or_default(const char *key, char *value, size_t value_sz, const char *default_value) {
     char tmp[256] = {0};
 
@@ -51,9 +61,17 @@ static void load_value_or_default(const char *key, char *value, size_t value_sz,
     snprintf(value, value_sz, "%s", default_value);
 }
 
+/**
+ * @brief  初始化日志，并兼容不同启动目录下的日志相对路径
+ * @param  level_str 日志级别字符串
+ * @param  log_file 原始日志文件路径
+ * @return 无
+ */
 static void init_log_with_fallback(const char *level_str, const char *log_file) {
     const char *real_log_file = log_file;
 
+    // 服务端从根目录或 bin 目录启动时，相对日志路径不同。
+    // 这里按真实存在的目录修正日志路径，避免服务端启动早期丢日志。
     if (log_file != NULL && strncmp(log_file, "../", 3) == 0) {
         if (access("../log", F_OK) == 0) {
             real_log_file = log_file;
@@ -69,9 +87,10 @@ static void init_log_with_fallback(const char *level_str, const char *log_file) 
     init_log(level_str, NULL);
 }
 
-// 函数作用：服务端主函数。
-// 参数：无。
-// 返回值：正常结束返回 0。
+/**
+ * @brief  服务端主函数，负责初始化配置、数据库、线程池和 epoll 主循环
+ * @return 正常结束返回 0，失败返回非 0
+ */
 int main(){
     // 忽略 SIGPIPE。
     // 这样当对端断开连接后，send 不会直接把进程打死。

@@ -287,6 +287,8 @@ static int finish_upload_db_work(ClientContext *ctx, const char *full_path, cons
     off_t db_file_size = 0;
 
     // 先尝试把这份真实文件作为“新文件”插入 files 表。
+    // 这是“首次上传某个新内容”的标准分支。
+    // 插入成功时，files.count 初始就是 1，因此后面补 paths 节点时无需再次加引用计数。
     if (dao_file_insert(sha256sum, file_size, &file_id) == 0) {
         return create_user_file_link(ctx, full_path, file_name, file_id, 0);
     }
@@ -304,6 +306,13 @@ static int finish_upload_db_work(ClientContext *ctx, const char *full_path, cons
     return -1;
 }
 
+/**
+ * @brief  处理 gets 命令，按逻辑路径查找并向客户端发送真实文件内容
+ * @param  client_fd 当前客户端套接字
+ * @param  ctx 当前客户端会话上下文
+ * @param  arg 用户输入的文件名
+ * @return 无
+ */
 void handle_gets(int client_fd, ClientContext *ctx, char *arg) {
     char full_path[512] = {0};
     char real_path[MAX_PATH_LEN] = {0};
@@ -340,6 +349,8 @@ void handle_gets(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
+    // 第四步：真正去磁盘上打开这份真实文件。
+    // 到这里，下载链路才算从“逻辑路径 -> files 元数据”走到了最终物理实体。
     int file_fd = open(real_path, O_RDONLY);
     if (file_fd == -1) {
         LOG_WARN("打开真实文件失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
@@ -373,6 +384,8 @@ void handle_gets(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
+    // 客户端回传的 offset 表示“本地已经下载完成的字节数”。
+    // 服务端随后会从这个偏移位置继续发送，实现下载断点续传。
     off_t offset = client_file_packet.offset;
 
     if (offset < 0 || offset > st.st_size) {
@@ -383,6 +396,8 @@ void handle_gets(int client_fd, ClientContext *ctx, char *arg) {
     LOG_DEBUG("准备下载真实文件，客户端fd=%d，逻辑路径=%s，真实路径=%s，偏移=%lld，大小=%lld",
               client_fd, full_path, real_path, (long long)offset, (long long)st.st_size);
 
+    // remaining 表示这次还需要从真实文件里继续发送多少字节。
+    // 每次 sendfile 成功后都会减少，直到归零。
     off_t remaining = st.st_size - offset;
 
     // sendfile 会直接让内核把文件内容推到 socket。
@@ -413,6 +428,13 @@ void handle_gets(int client_fd, ClientContext *ctx, char *arg) {
     }
 }
 
+/**
+ * @brief  处理 puts 命令，支持普通上传、断点续传和秒传
+ * @param  client_fd 当前客户端套接字
+ * @param  ctx 当前客户端会话上下文
+ * @param  arg 用户输入的文件名
+ * @return 无
+ */
 void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     char full_path[512] = {0};
     char file_name[256] = {0};
@@ -435,6 +457,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
+    // 从逻辑全路径中提取最后一级文件名。
+    // paths.path 保存完整路径，paths.file_name 只保存最后一级名字，这里两者都要维护。
     extract_file_name(full_path, file_name);
     if (!is_valid_vfs_name(file_name)) {
         send_msg(client_fd, "错误：文件名过长，最大长度为 30");
@@ -481,6 +505,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
         off_t store_size = 0;
         int store_ready = check_store_file_ready(client_file_packet.hash, existed_file_size, &store_size);
 
+        // 返回 -1 说明不是“文件不存在”，而是服务端当前连真实仓库状态都无法可靠判断。
+        // 这种情况下继续往下走风险很大，因此直接失败返回。
         if (store_ready == -1) {
             send_msg(client_fd, "秒传失败：服务端无法校验真实文件");
             return;
@@ -510,6 +536,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
             return;
         }
 
+        // 能走到这里，说明 files 表里虽然有 hash 记录，但真实文件缺失或大小不一致。
+        // 这时不能继续秒传，而是要退化为正常上传/续传，修复这份真实实体。
         LOG_WARN("检测到真实文件缺失或不完整，转为正常上传，客户端fd=%d，hash=%s，磁盘大小=%lld，期望大小=%lld",
                  client_fd, client_file_packet.hash, (long long)store_size, (long long)existed_file_size);
     }
@@ -524,7 +552,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     }
 
     // 真实文件名直接就是 hash。
-    // 这样无论哪个用户上传同内容文件，最终指向的都是这一份物理文件。
+    // 这样无论哪个用户上传同内容文件，最终指向的都是同一份物理实体。
+    // 首次上传、续传、以及“修复半截真实文件”的场景都会复用这里。
     int file_fd = open(real_path, O_RDWR | O_CREAT, 0666);
     if (file_fd == -1) {
         LOG_ERROR("打开真实上传文件失败，客户端fd=%d，路径=%s，错误码=%d", client_fd, real_path, errno);
@@ -547,6 +576,7 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     }
 
     // 先把服务端已有进度回给客户端，这样客户端就知道该从哪里继续发。
+    // 这一步是上传断点续传的关键握手。
     file_packet_t server_file_packet;
     init_file_packet(&server_file_packet,
                      CMD_TYPE_PUTS,
@@ -560,6 +590,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
+    // file_len 是客户端声明的完整文件大小。
+    // remaining 是服务端当前还缺多少字节没有收齐。
     off_t file_len = client_file_packet.file_size;
     off_t remaining = file_len - local_size;
 
@@ -578,6 +610,7 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     }
 
     // 为了能直接在偏移位置写数据，先把文件拉到目标总大小。
+    // 后面 mmap 整个文件时，需要确保映射范围覆盖完整文件长度。
     if (ftruncate(file_fd, file_len) == -1) {
         send_msg(client_fd, "服务端扩展文件失败");
         close(file_fd);
@@ -609,6 +642,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
         return;
     }
 
+    // write_start 指向“本次应该开始写入网络数据的位置”。
+    // 如果前面已经续传了 local_size 字节，那么这里就从断点后继续写。
     char *write_start = map_ptr + local_size;
     off_t received_count = 0;
 
@@ -623,6 +658,8 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
         // 注意这里不能用 recv_full。
         // 因为网络传输中这一轮到底能收到多少字节，取决于内核当前给了多少。
         // 我们只需要不断累计，直到总量达到 remaining 即可。
+        // 这里直接把网络数据写进 mmap 映射区。
+        // 这样收到的数据会同步落到真实文件对应的位置上。
         ssize_t ret = recv(client_fd, write_start + received_count, once, 0);
         if (ret <= 0) {
             break;
@@ -647,6 +684,7 @@ void handle_puts(int client_fd, ClientContext *ctx, char *arg) {
     }
 
     // 真正完整收满后，再补数据库。
+    // 这一步故意放在最后，目的是确保数据库里的“文件已存在”永远对应一份完整可下载的真实实体。
     if (finish_upload_db_work(ctx, full_path, file_name, client_file_packet.hash, file_len) != 0) {
         send_msg(client_fd, "上传失败：数据库写入失败");
         close(file_fd);

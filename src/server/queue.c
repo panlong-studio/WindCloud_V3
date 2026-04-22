@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include "queue.h"
 
-// 函数作用：把一个客户端 fd 放进队列尾部。
-// 参数 pQueue：任务队列。
-// 参数 fd：要入队的客户端 fd。
-// 返回值：固定返回 0。
+/**
+ * @brief  把一个客户端 fd 放进任务队列尾部
+ * @param  pQueue 任务队列
+ * @param  fd 要入队的客户端 fd
+ * @return 成功返回 0
+ */
 int enQueue(queue_t* pQueue,int fd){
     // 先创建一个新结点。
     node_t* pNew=(node_t*)calloc(1,sizeof(node_t));
@@ -29,9 +31,11 @@ int enQueue(queue_t* pQueue,int fd){
     return 0;
 }
 
-// 函数作用：从队列头部取出一个客户端 fd。
-// 参数 pQueue：任务队列。
-// 返回值：成功返回一个客户端 fd；如果队列为空，返回 -1。
+/**
+ * @brief  从任务队列头部取出一个客户端 fd
+ * @param  pQueue 任务队列
+ * @return 成功返回客户端 fd，队列为空返回 -1
+ */
 int deQueue(queue_t* pQueue){
     // 空队列没有元素可取。
     if(pQueue->size==0){

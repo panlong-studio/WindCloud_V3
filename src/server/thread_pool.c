@@ -8,10 +8,12 @@
 #include "log.h"
 
 
-// 函数作用：初始化线程池。
-// 参数 pool：线程池结构体地址，函数内部会把它填充完整。
-// 参数 num：要创建多少个工作线程。
-// 返回值：无。
+/**
+ * @brief  初始化线程池并创建所有工作线程
+ * @param  pool 线程池结构体地址
+ * @param  num 工作线程数量
+ * @return 无
+ */
 void init_thread_pool(thread_pool_t* pool,int num){
     // exitFlag=0 表示线程池当前处于正常工作状态。
     pool->exitFlag=0;
@@ -29,6 +31,7 @@ void init_thread_pool(thread_pool_t* pool,int num){
     memset(&pool->queue,0,sizeof(queue_t));
 
     // 为线程 ID 数组分配空间。
+    // 后面 destroy_thread_pool 会负责统一释放。
     pool->thread_id_arr=(pthread_t*)malloc(num*sizeof(pthread_t));
 
     // 为每个线程准备一个 worker_arg_t。
@@ -45,6 +48,7 @@ void init_thread_pool(thread_pool_t* pool,int num){
     }
 
     // 初始状态下，没有线程正在处理客户端，所以全部设成 -1。
+    // 这个数组主要用于服务端退出时，定位每个工作线程当前正忙着处理哪个客户端。
     for(int idx=0;idx<num;++idx){
         pool->busy_fds[idx]=-1;
     }
@@ -67,9 +71,11 @@ void init_thread_pool(thread_pool_t* pool,int num){
 
 }
 
-// 函数作用：销毁线程池申请过的资源。
-// 参数 pool：线程池结构体地址。
-// 返回值：无。
+/**
+ * @brief  销毁线程池申请的动态资源
+ * @param  pool 线程池结构体地址
+ * @return 无
+ */
 void destroy_thread_pool(thread_pool_t *pool){
     // 先做空指针保护。
     if(pool==NULL){
