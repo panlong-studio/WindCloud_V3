@@ -1,0 +1,109 @@
+[2026-04-22 13:11:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-22 13:11:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-22 13:11:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-22 13:11:04] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-22 13:11:04] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-22 13:11:04] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-22 13:11:04] [INFO] [src/client/client.c:124 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-22 13:11:44] [INFO] [src/client/client.c:45 client_login_menu] 用户登录成功
+[2026-04-22 13:11:54] [DEBUG] [src/client/client.c:168 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:11:54] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=[1;34mtest01/[0m 
+[2026-04-22 13:11:59] [DEBUG] [src/client/client.c:168 main] 客户端开始处理命令，输入=cd test01
+[2026-04-22 13:12:00] [DEBUG] [src/client/client.c:168 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:12:00] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=[1;34mtmp/[0m [1;34mdemo/[0m 
+[2026-04-22 13:12:04] [DEBUG] [src/client/client.c:168 main] 客户端开始处理命令，输入=touch 1.txt
+[2026-04-22 13:12:04] [WARN] [src/client/client_command_handle.c:103 process_command] 无效命令，输入=touch 1.txt
+[2026-04-22 13:12:29] [DEBUG] [src/client/client.c:168 main] 客户端开始处理命令，输入=rmdir demo
+[2026-04-22 13:12:29] [WARN] [src/client/client_command_handle.c:103 process_command] 无效命令，输入=rmdir demo
+[2026-04-22 13:12:50] [INFO] [src/client/client.c:158 main] 客户端请求退出
+[2026-04-22 13:12:50] [INFO] [src/client/client.c:174 main] 客户端套接字已关闭
+[2026-04-22 13:24:38] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-22 13:24:38] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-22 13:24:38] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-22 13:24:38] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-22 13:24:38] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-22 13:24:38] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-22 13:24:38] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-22 13:24:56] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=用户名不存在
+[2026-04-22 13:24:56] [ERROR] [src/client/client.c:55 client_login_menu] 登录/注册失败，输入=login user02/123
+[2026-04-22 13:25:49] [INFO] [src/client/client.c:50 client_login_menu] 用户注册成功
+[2026-04-22 13:26:13] [INFO] [src/client/client.c:45 client_login_menu] 用户登录成功
+[2026-04-22 13:26:33] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:26:33] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=当前目录为空
+[2026-04-22 13:26:38] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=toush 1.txt
+[2026-04-22 13:26:38] [WARN] [src/client/client_command_handle.c:103 process_command] 无效命令，输入=toush 1.txt
+[2026-04-22 13:26:48] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=touch
+[2026-04-22 13:26:48] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=错误：该文件或目录已存在
+[2026-04-22 13:26:55] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=touch 1.txt
+[2026-04-22 13:26:57] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:26:57] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=1.txt 
+[2026-04-22 13:27:06] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=mkdir test
+[2026-04-22 13:27:08] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:27:08] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=1.txt [1;34mtest/[0m 
+[2026-04-22 13:27:12] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=cd test
+[2026-04-22 13:27:15] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=pwd
+[2026-04-22 13:27:15] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=/test
+[2026-04-22 13:27:24] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=mkdir tmp
+[2026-04-22 13:27:27] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:27:27] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=[1;34mtmp/[0m 
+[2026-04-22 13:27:29] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=cd tmp
+[2026-04-22 13:27:36] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=touch 2.txt
+[2026-04-22 13:27:37] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:27:37] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=2.txt 
+[2026-04-22 13:27:42] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=cd ..
+[2026-04-22 13:27:48] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:27:48] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=[1;34mtmp/[0m 
+[2026-04-22 13:27:54] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=rmdir tmp
+[2026-04-22 13:27:54] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=目标目录非空，请先删除目录下的内容
+[2026-04-22 13:27:59] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=cd tmp
+[2026-04-22 13:28:00] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:28:00] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=2.txt 
+[2026-04-22 13:28:05] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=rm 2.txt
+[2026-04-22 13:28:06] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:28:06] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=当前目录为空
+[2026-04-22 13:28:08] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=cd ..
+[2026-04-22 13:28:12] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=rmdir tmp
+[2026-04-22 13:28:14] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:28:14] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=当前目录为空
+[2026-04-22 13:28:18] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=cd ..
+[2026-04-22 13:28:21] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:28:21] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=1.txt [1;34mtest/[0m 
+[2026-04-22 13:28:27] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=pwd
+[2026-04-22 13:28:27] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=/
+[2026-04-22 13:28:41] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=puts 1.txt
+[2026-04-22 13:28:41] [INFO] [src/client/client_command_handle.c:291 process_command] 客户端请求上传文件，文件=1.txt
+[2026-04-22 13:28:41] [WARN] [src/client/client_command_handle.c:297 process_command] 打开本地上传文件失败，文件=1.txt，错误码=2
+[2026-04-22 13:29:09] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=gets tmp_file.txt
+[2026-04-22 13:29:09] [INFO] [src/client/client_command_handle.c:111 process_command] 客户端请求下载文件，文件=tmp_file.txt
+[2026-04-22 13:29:09] [WARN] [src/client/client_command_handle.c:141 process_command] 服务端文件不存在，文件=tmp_file.txt
+[2026-04-22 13:31:34] [INFO] [src/client/client.c:160 main] 客户端请求退出
+[2026-04-22 13:31:34] [INFO] [src/client/client.c:176 main] 客户端套接字已关闭
+[2026-04-22 13:32:58] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=ip value=127.0.0.1
+[2026-04-22 13:32:58] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=port value=9090
+[2026-04-22 13:32:58] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=log value=DEBUG
+[2026-04-22 13:32:58] [INFO] [src/common/config.c:60 get_target] 配置加载成功 key=client_log value=../log/client.log
+[2026-04-22 13:32:58] [INFO] [src/client/client_socket.c:21 init_socket] 客户端套接字创建成功，描述符=5
+[2026-04-22 13:32:58] [INFO] [src/client/client_socket.c:39 init_socket] 客户端连接成功，地址=127.0.0.1，端口=9090
+[2026-04-22 13:32:58] [INFO] [src/client/client.c:126 main] 客户端已连接服务器，地址=127.0.0.1，端口=9090
+[2026-04-22 13:33:06] [INFO] [src/client/client.c:45 client_login_menu] 用户登录成功
+[2026-04-22 13:33:22] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=puts big_file.txt
+[2026-04-22 13:33:22] [INFO] [src/client/client_command_handle.c:291 process_command] 客户端请求上传文件，文件=big_file.txt
+[2026-04-22 13:33:28] [DEBUG] [src/client/client_command_handle.c:318 process_command] 计算文件哈希值成功，文件=big_file.txt，哈希=c84ac99297c222629cf43dda5f5a24dc4b55e18544091fece0dea269a02b2324
+[2026-04-22 13:33:28] [DEBUG] [src/client/client_command_handle.c:361 process_command] 上传断点信息，文件=big_file.txt，本地大小=421429351，偏移=0
+[2026-04-22 13:33:49] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=上传完成！
+[2026-04-22 13:33:49] [INFO] [src/client/client_command_handle.c:420 process_command] 上传成功，文件=big_file.txt
+[2026-04-22 13:34:40] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=gets big_file.txt
+[2026-04-22 13:34:40] [INFO] [src/client/client_command_handle.c:111 process_command] 客户端请求下载文件，文件=big_file.txt
+[2026-04-22 13:34:40] [DEBUG] [src/client/client_command_handle.c:174 process_command] 下载断点信息，文件=big_file.txt，本地大小=0，服务端大小=421429351，偏移=0
+[2026-04-22 13:34:44] [INFO] [src/client/client_command_handle.c:283 process_command] 下载成功，文件=big_file.txt，大小=421429351
+[2026-04-22 13:35:04] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:35:04] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=1.txt big_file.txt [1;34mtest/[0m 
+[2026-04-22 13:35:12] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=rm big_file.txt
+[2026-04-22 13:35:23] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=ls
+[2026-04-22 13:35:23] [DEBUG] [src/client/client_command_handle.c:61 recv_server_reply] 收到服务端响应，套接字=5，消息=1.txt [1;34mtest/[0m 
+[2026-04-22 13:36:15] [DEBUG] [src/client/client.c:170 main] 客户端开始处理命令，输入=puts big_file.txt
+[2026-04-22 13:36:15] [INFO] [src/client/client_command_handle.c:291 process_command] 客户端请求上传文件，文件=big_file.txt
+[2026-04-22 13:36:20] [DEBUG] [src/client/client_command_handle.c:318 process_command] 计算文件哈希值成功，文件=big_file.txt，哈希=c84ac99297c222629cf43dda5f5a24dc4b55e18544091fece0dea269a02b2324
+[2026-04-22 13:36:20] [INFO] [src/client/client_command_handle.c:352 process_command] 上传已跳过，服务器文件完整，秒传完成，文件=big_file.txt，大小=421429351
+[2026-04-22 13:38:48] [INFO] [src/client/client.c:160 main] 客户端请求退出
+[2026-04-22 13:38:48] [INFO] [src/client/client.c:176 main] 客户端套接字已关闭

@@ -27,11 +27,17 @@ cmd_type_t get_cmd_type(const char *cmd_str) {
     if (strcmp(cmd_str, "puts") == 0) {
         return CMD_TYPE_PUTS;
     }
+    if(strcmp(cmd_str,"touch")==0){
+        return CMD_TYPE_TOUCH;
+    }
     if (strcmp(cmd_str, "rm") == 0) {
         return CMD_TYPE_RM;
     }
     if (strcmp(cmd_str, "mkdir") == 0) {
         return CMD_TYPE_MKDIR;
+    }
+    if(strcmp(cmd_str,"rmdir")==0){
+        return CMD_TYPE_RMDIR;
     }
     if (strcmp(cmd_str, "login") == 0) {
         return CMD_TYPE_LOGIN;

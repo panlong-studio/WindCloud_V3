@@ -43,10 +43,12 @@ static int client_login_menu(int sock_fd){
             int ret=process_command(sock_fd,input);
             if(ret==1&&strncmp(input,"login ",6)==0){
                 LOG_INFO("用户登录成功");
+                printf("\n>>>>>登录成功<<<<<\n");
                 return 0;
             }
             else if(ret==1 && strncmp(input,"register ",9)==0){
                 LOG_INFO("用户注册成功");
+                printf("\n>>>>>注册成功 请登录<<<<<\n");
                 continue; // 留在这个死循环里，继续等用户敲 login
             }
             else{
