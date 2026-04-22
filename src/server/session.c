@@ -28,15 +28,31 @@ static cmd_type_t get_packet_cmd_type(const command_packet_t *cmd_packet) {
 void handle_request(int client_fd) {
     ClientContext ctx;
 
+    // 每个客户端连接，都维护一个独立的 ClientContext。
+    // 它就像“这个用户当前会话的小档案”，里面保存：
+    // 1. 当前是谁（user_id）
+    // 2. 当前在哪个虚拟目录（current_path）
+    // 3. 当前目录节点 id 是多少（parent_id）
+    // 后面 pwd / cd / ls / puts / gets 全都依赖它。
+    //
+    // 先把整个上下文清零，避免里面残留脏数据。
     memset(&ctx, 0, sizeof(ctx));
 
-    ctx.user_id = -1; // 初始状态未登录
-    strcpy(ctx.current_path, "/"); // 初始路径为根目录
-    ctx.parent_id = 0; // 根目录的 parent_id 是 0
+    // 新连接默认还没有登录。
+    ctx.user_id = -1;
+
+    // 初始虚拟路径固定为根目录。
+    strcpy(ctx.current_path, "/");
+
+    // 根目录约定 parent_id 为 0。
+    ctx.parent_id = 0;
 
     while (1) {
         command_packet_t cmd_packet;
 
+        // handle_request 是“一个客户端连接上的总循环”。
+        // 客户端不断发命令，这里就不断收命令。
+        // 一旦 recv_command_packet 返回 <= 0，说明连接断开或出错，这个会话就结束。
         if (recv_command_packet(client_fd, &cmd_packet) <= 0) {
             LOG_INFO("客户端连接断开，客户端fd=%d，当前路径=%s", client_fd, ctx.current_path);
             break;
@@ -45,6 +61,7 @@ void handle_request(int client_fd) {
         cmd_type_t cmd_type = get_packet_cmd_type(&cmd_packet);
         LOG_DEBUG("收到客户端命令，客户端fd=%d，命令类型=%d，数据=%s", client_fd, cmd_type, cmd_packet.data);
 
+        // 没登录时，除了登录和注册，别的命令都不允许执行。
         if(ctx.user_id == -1 && cmd_type != CMD_TYPE_LOGIN && cmd_type != CMD_TYPE_REGISTER) {
             LOG_WARN("未登录用户尝试执行命令，客户端fd=%d，命令类型=%d", client_fd, cmd_type);
             send_msg(client_fd, "请先登录!");
@@ -52,27 +69,30 @@ void handle_request(int client_fd) {
         }
 
         switch (cmd_type) {
-            case CMD_TYPE_LOGIN:{
-                int old_user_id = ctx.user_id;
+            case CMD_TYPE_LOGIN: {
+                int old_user_id = ctx.user_id;// 记录登录前的 user_id，看看登录后有没有变化
                 handle_login(client_fd, cmd_packet.data, &ctx.user_id);
-                if(ctx.user_id != -1 && old_user_id == -1) {
+
+                // 登录成功后，把会话路径重新放回根目录。
+                // 这样无论这个连接之前是什么状态，一旦登录成功，
+                // 后续目录类命令都从 "/" 开始，逻辑最清楚。
+                if (old_user_id == -1 && ctx.user_id != -1) {// 之前没登录，现在登录成功了
+                    LOG_INFO("用户登录成功，客户端fd=%d，用户id=%d", client_fd, ctx.user_id);
                     strcpy(ctx.current_path, "/");
                     ctx.parent_id = 0;
-                    LOG_INFO("用户登录成功，客户端fd=%d，用户ID=%d", client_fd, ctx.user_id);
-                } else if(ctx.user_id == -1) {
-                    LOG_INFO("用户登录失败，客户端fd=%d", client_fd);
                 }
                 break;
             }
 
-            case CMD_TYPE_REGISTER:{
-                int old_user_id = ctx.user_id;
-                handle_register(client_fd, cmd_packet.data, &ctx.user_id);
-                //注册成功修改会话状态 之后扩展成注册后自动登录也可兼容
-                if(old_user_id==-1&& ctx.user_id!=-1){
-                    strcpy(ctx.current_path,"/");
-                    ctx.parent_id=0;
-                    LOG_INFO("用户注册成功，客户端fd=%d，用户ID=%d",client_fd,ctx.user_id);
+            case CMD_TYPE_REGISTER: {
+                int temp_new_id=-1;
+                handle_register(client_fd, cmd_packet.data, &temp_new_id);
+
+                // 当前注册成功后，客户端仍然需要再执行一次 login。
+                if(temp_new_id!=-1){
+                    LOG_INFO("新用户注册成功，客户端fd=%d，新用户id=%d", client_fd, temp_new_id);
+                } else {
+                    LOG_WARN("用户注册失败，客户端fd=%d", client_fd);
                 }
                 break;
             }

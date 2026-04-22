@@ -29,13 +29,13 @@ typedef enum {
     CMD_TYPE_LS,          // 查看目录内容
     CMD_TYPE_GETS,        // 下载文件
     CMD_TYPE_PUTS,        // 上传文件
+    CMD_TYPE_TOUCH,       // 创建文件
     CMD_TYPE_RM,          // 删除文件
     CMD_TYPE_MKDIR,       // 创建目录
-    CMD_TYPE_RMDIR,      // 删除目录
-    CMD_TYPE_TOUCH,      // 创建文件
-    CMD_TYPE_REPLY,        // 服务端返回的普通文本响应
-    CMD_TYPE_LOGIN,        // 登录命令
-    CMD_TYPE_REGISTER,     // 注册命令
+    CMD_TYPE_RMDIR,       // 删除目录
+    CMD_TYPE_REPLY,       // 服务端返回的普通文本响应
+    CMD_TYPE_LOGIN,       // 登录命令
+    CMD_TYPE_REGISTER,    // 注册命令
 } cmd_type_t;
 
 // 普通命令结构体。
