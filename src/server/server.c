@@ -77,13 +77,14 @@ int main(){
     // 这样当对端断开连接后，send 不会直接把进程打死。
     signal(SIGPIPE, SIG_IGN);
 
+    //=====================加载配置========================
     // ip 和 port 用来保存配置文件中的监听地址。
     char ip[64] = {0}; 
     char port[64] = {0};
     char log_level[32] = {0};
     char log_file[256] = {0};
 
-    // 先用默认日志路径初始化，确保配置加载阶段的日志也能落盘。
+    // 先用默认日志路径初始化，确保配置加载阶段的日志也能写入。
     init_log_with_fallback("INFO", "../log/server.log");
 
     // 加载配置。
@@ -103,26 +104,26 @@ int main(){
     load_value_or_default("db_pwd",  db_pwd,  sizeof(db_pwd),  "123456"); 
     load_value_or_default("db_name", db_name, sizeof(db_name), "netdisk_db");
 
-    // 先初始化日志。
+    //=================先初始化日志========================
     // 否则 socket/bind/accept 等调用一旦失败，ERROR_CHECK 无法安全打印日志。
     init_log_with_fallback(log_level, log_file);
     LOG_INFO("服务端配置加载完成，地址=%s，端口=%s", ip, port);
 
-    //服务端数据库自动建表
+    //===============服务端数据库自动建表==========================
     if (init_database(db_host, db_user, db_pwd, db_name) != 0) {
         LOG_ERROR("数据库初始化失败，服务端拒绝启动");
         close_log();
         return 1;
     }
 
-    // 初始化数据库连接池
+    //=================初始化数据库连接池========================
     if(init_db_pool(db_host, db_user, db_pwd, db_name, 10) != 0) {
         LOG_ERROR("数据库连接池初始化失败，服务端拒绝启动");
         close_log();
         return 1;
     }
 
-    
+    //=================创建管道和子进程========================
     // 创建匿名管道，用于父进程通知子进程退出。
     if (pipe(pipe_fd) != 0) {
         LOG_ERROR("创建管道失败: %s", strerror(errno));
@@ -158,15 +159,18 @@ int main(){
         LOG_WARN("设置进程组失败 errno=%d", errno);
     }
 
+    //=================子进程继续执行服务端主逻辑========================
+
+    //-----------创建监听 socket----------------
     // listen_fd 是服务端监听新连接用的 socket。
     int listen_fd = 0;
     init_socket(&listen_fd, ip, port);
 
-    // 创建线程池。
+    //-----------创建线程池----------------
     thread_pool_t pool;
     init_thread_pool(&pool, 5);
 
-    // 创建 epoll 实例。
+    //-----------创建 epoll 实例----------------
     int epfd = epoll_create(1);
     ERROR_CHECK(epfd, -1, "创建 epoll");
 
