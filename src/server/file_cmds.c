@@ -173,7 +173,7 @@ void handle_rm(int client_fd, ClientContext *ctx, char *arg) {
     if (dao_delete_node(ctx->user_id, target_id) == 0) {
         send_msg(client_fd, "文件删除成功");
     } else {
-        LOG_WARN("rm命令删除文件失败，客户端fd=%d，目标路径=%s", clietn_fd, target_path);
+        LOG_WARN("rm命令删除文件失败，客户端fd=%d，目标路径=%s", client_fd, target_path);
         send_msg(client_fd, "文件删除失败，数据库异常");
     }
 }
