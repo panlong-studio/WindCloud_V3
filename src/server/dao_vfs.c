@@ -5,6 +5,14 @@
 #include "db_pool.h"
 #include "log.h"
 
+/**
+ * @brief 通过用户 id 和逻辑路径查出对应的节点 id 和类型
+ * @param user_id 用户 id
+ * @param path 逻辑路径，例如 "/doc/a.txt"
+ * @param out_id 输出参数，返回节点 id
+ * @param out_type 输出参数，返回节点类型（0=普通文件，1=目录）
+ * @return 成功返回 0，失败返回 -1
+ */
 int dao_get_node_by_path(int user_id, const char *path, int *out_id, int *out_type) {
     // 根目录 "/" 是一个特殊情况。
     // 当前项目没有把每个用户的根目录真的插到 paths 表中，
@@ -39,6 +47,11 @@ int dao_get_node_by_path(int user_id, const char *path, int *out_id, int *out_ty
     return -1;
 }
 
+/**
+ * @brief 列出指定目录下的所有子节点
+ * @param user_id 用户 id
+ * @param parent_id 目录节点 id 
+ */
 int dao_list_dir(int user_id, int parent_id, char *output_buf) {
     char sql[256];
     // ls 的本质，是查“当前目录的所有孩子节点”。
@@ -67,6 +80,15 @@ int dao_list_dir(int user_id, int parent_id, char *output_buf) {
     return used; // 返回拼接了多少个字符，0表示空目录
 }
 
+/**
+ * @brief 创建一个新的目录节点
+ * @param user_id 用户 id
+ * @param full_path 逻辑路径，例如 "/doc/test"
+ * @param parent_id 父目录节点 id
+ * @param file_name 目录名，例如 "docs"
+ * @param type 节点类型，0=普通文件，1=目录
+ * @return 成功返回 0，失败返回 -1
+ */
 int dao_create_node(int user_id, const char *full_path, int parent_id, const char *file_name, int type) {
     char sql[1024];
     // 这是“通用节点创建”函数。
@@ -79,6 +101,15 @@ int dao_create_node(int user_id, const char *full_path, int parent_id, const cha
     return db_execute_update(sql);
 }
 
+/**
+ * @brief 创建一个新的普通文件节点，并关联一个真实文件
+ * @param user_id 用户 id
+ * @param full_path 逻辑路径，例如 "/doc/a.txt"
+ * @param parent_id 父目录节点 id
+ * @param file_name 文件名，例如 "a.txt"
+ * @param file_id 关联的真实文件 id
+ * @return 成功返回 0，失败返回 -1
+ */
 int dao_create_file_node(int user_id, const char *full_path, int parent_id, const char *file_name, int file_id) {
     char sql[1024];
 
@@ -93,6 +124,14 @@ int dao_create_file_node(int user_id, const char *full_path, int parent_id, cons
     return db_execute_update(sql);
 }
 
+/**
+ * @brief 通过用户 id 和逻辑路径查出对应的节点 id 和关联的真实文件 id
+ * @param user_id 用户 id
+ * @param path 逻辑路径，例如 "/doc/a.txt"
+ * @param out_node_id 输出参数，返回节点 id
+ * @param out_file_id 输出参数，返回关联的真实文件 id
+ * @return 成功返回 0，失败返回 -1
+ */
 int dao_get_file_info_by_path(int user_id, const char *path, int *out_node_id, int *out_file_id) {
     char sql[512];
     // 下载时的第一跳：
@@ -128,6 +167,12 @@ int dao_get_file_info_by_path(int user_id, const char *path, int *out_node_id, i
     return 0;
 }
 
+/**
+ * @brief 判断一个目录是否为空
+ * @param user_id 用户 id
+ * @param dir_id 目录节点 id
+ * @return 1 表示空，0 表示非空，-1 表示查询失败
+ */
 int dao_is_dir_empty(int user_id, int dir_id) {
     char sql[256];
     // 只要目录下面还能查到一个子节点，就说明目录非空。
@@ -141,6 +186,12 @@ int dao_is_dir_empty(int user_id, int dir_id) {
     return empty;
 }
 
+/**
+ * @brief 删除一个节点（文件或目录）
+ * @param user_id 用户 id
+ * @param node_id 节点 id
+ * @return 成功返回 0，失败返回 -1
+ */
 int dao_delete_node(int user_id, int node_id) {
     char sql[256];
     // 删除时同时带上 user_id，避免误删别的用户的数据。
