@@ -32,7 +32,7 @@
 3. 新连接会被丢进线程池，由工作线程长期服务这个连接
 4. 每个连接在服务端都有一份 `ClientContext`
 5. 用户看到的目录树保存在 `paths` 表
-6. 真实文件实体保存在 `files` 表和 `test/files/<sha256>`
+6. `files` 表保存真实文件元数据，文件内容保存在 `test/files/<sha256>`
 7. 上传时先按 hash 查 `files`，有则秒传，没有则真正传输
 8. 下载时先查逻辑路径，再查真实文件 hash，最后定位磁盘文件
 
@@ -435,7 +435,7 @@ flowchart TD
 
 ## 8.2 `files` 表
 
-作用：存真实文件实体。
+作用：存真实文件元数据。
 
 关键字段：
 
@@ -640,7 +640,10 @@ WHERE user_id = 当前用户
 
 1. 查逻辑路径
 2. 校验目标必须是文件
-3. 删除 `paths` 节点
+3. 先根据逻辑路径查出对应的 `file_id`
+4. 删除 `paths` 节点
+5. 递减 `files.count`
+6. 当 `count = 0` 时继续删除 `files` 记录和 `test/files/<sha256>` 真实文件
 
 ### `rmdir`
 
@@ -651,11 +654,13 @@ WHERE user_id = 当前用户
 3. 先检查目录是否为空
 4. 再删除目录节点
 
-当前删除逻辑主要处理的是：
+也就是说，当前的 `rm` 已经不只是“删除虚拟文件系统里的一个节点”，而是已经把：
 
-- 删除虚拟文件系统里的节点
+- 逻辑节点删除
+- 引用计数维护
+- 最后一个引用消失后的真实文件回收
 
-还没有把“`files.count - 1` 直到物理文件回收”这条链路完全补齐，这是后续可以继续完善的点。
+这三步链路补齐了。
 
 ---
 
@@ -692,22 +697,47 @@ sequenceDiagram
     participant DB as MySQL
 
     C->>S: command_packet(puts, 文件名)
+    S->>F: handle_puts()
     C->>F: file_packet(文件名, 大小, hash)
     F->>V: 检查逻辑路径是否重名
-    F->>DF: 按 hash 查 files
+    V->>DB: SELECT paths WHERE user_id + path
 
-    alt 服务器已存在相同 hash
-        F->>V: 插入逻辑文件节点
-        F->>DF: count + 1
-        F->>C: 回相同 hash，表示秒传完成
-    else 服务器没有该 hash
-        F->>Disk: 打开/创建 test/files/hash
-        F->>C: 告诉客户端 offset
-        C->>F: 从 offset 继续发送数据
-        F->>Disk: 写入真实文件
-        F->>DF: INSERT files
-        F->>V: INSERT paths
-        F->>C: 回复上传完成
+    alt 逻辑路径已存在
+        F->>C: file_packet(offset=file_size，无需继续发)
+        F->>C: reply("错误：该文件已存在")
+    else 逻辑路径可创建
+        F->>DF: 按 hash 查 files
+        DF->>DB: SELECT files WHERE sha256sum
+
+        alt hash 命中且真实文件完整
+            F->>Disk: stat test/files/hash
+            F->>V: 插入逻辑文件节点
+            V->>DB: INSERT paths(file_id, parent_id, ...)
+            F->>DF: count + 1
+            DF->>DB: UPDATE files.count
+            F->>C: 回相同 hash，表示秒传完成
+        else hash 未命中，或真实文件缺失/不完整
+            F->>Disk: 打开/创建 test/files/hash
+            F->>Disk: 读取当前已写入的大小
+            F->>C: 告诉客户端 offset
+            C->>F: 从 offset 继续发送数据
+            F->>Disk: 写入真实文件
+
+            alt 文件已经完整写入磁盘
+                F->>DF: INSERT files 或按 hash 重新查询 file_id
+                DF->>DB: INSERT / SELECT files
+                opt 并发或复用已有 files 记录
+                    F->>DF: 必要时 count + 1
+                    DF->>DB: UPDATE files.count
+                end
+                F->>V: INSERT paths
+                V->>DB: INSERT paths(file_id, parent_id, ...)
+                F->>C: 回复上传完成
+            else 传输中断
+                F->>Disk: 截断到已保存进度
+                F->>C: 回复“传输中断，已保存当前进度”
+            end
+        end
     end
 ```
 
@@ -731,6 +761,17 @@ sequenceDiagram
 1. 在 `paths` 中插入逻辑文件节点
 2. 把 `files.count + 1`
 
+而且当前代码里，秒传的判断条件已经不只是“`files` 表里存在同 hash 记录”。
+
+还要继续检查：
+
+1. `test/files/<hash>` 是否存在
+2. 它是否是普通文件
+3. 它的大小是否和 `files.size` 一致
+
+只有“数据库记录存在 + 真实文件完整”时才会真正秒传。
+如果数据库有 hash 记录，但真实文件缺失或只有一部分，就会退化为正常上传 / 续传。
+
 ### 第三，断点续传依赖服务端已有的真实文件长度
 
 服务端会看：
@@ -740,6 +781,11 @@ test/files/<hash>
 ```
 
 已经有多少字节，然后把 `offset` 发给客户端，客户端从这个位置继续发。
+
+这一点现在同时覆盖两种情况：
+
+1. 普通上传中断后再次续传
+2. 数据库里已有 hash 记录，但真实文件不完整时，退化成“修复式续传”
 
 ### 第四，空文件上传也是合法场景
 
@@ -760,11 +806,14 @@ sequenceDiagram
     participant V as dao_vfs
     participant DF as dao_file
     participant Disk as test/files
+    participant DB as MySQL
 
     C->>S: command_packet(gets, 文件名)
     S->>F: handle_gets()
     F->>V: 按逻辑路径查 file_id
+    V->>DB: SELECT paths.file_id
     F->>DF: 按 file_id 查 sha256 和 size
+    DF->>DB: SELECT files.sha256sum, size
     F->>Disk: 打开 test/files/hash
     F->>C: file_packet(file_size)
     C->>F: file_packet(offset)
@@ -783,7 +832,7 @@ sequenceDiagram
 -> test/files/<sha256>
 ```
 
-这正是“逻辑目录与物理文件分离”的体现。
+这正是“逻辑目录与真实文件分离”的体现。
 
 ---
 
@@ -886,7 +935,9 @@ sequenceDiagram
 - 某个 hash 是否已经存在
 - 这个真实文件的 `id` 是多少
 - 文件大小是多少
-- 引用计数怎么加
+- 引用计数怎么加 / 怎么减
+- 当前引用计数是多少
+- 根据 `file_id` 反查真实文件的 hash 和大小
 
 ---
 
@@ -975,7 +1026,7 @@ paths 表 + parent_id
 
 当前逻辑能工作，但如果继续追求严谨性，后面还可以继续加事务。
 
-## 15.3 删除链路还没完全把 `files.count` 和物理回收闭环
+## 15.3 删除链路的异常回滚仍然可以继续增强
 
 当前更关注的是：
 
@@ -983,7 +1034,16 @@ paths 表 + parent_id
 - 能正确上传下载
 - 能正确秒传和续传
 
-删除路径上的“引用计数递减到 0 后删除实体文件”还可以继续加强。
+现在 `rm` 已经能够做到：
+
+- 删除 `paths` 逻辑节点
+- 维护 `files.count`
+- 在引用计数归零时删除 `files` 记录和真实文件
+
+如果继续增强，可以再考虑：
+
+1. 删除逻辑节点成功、但真实文件回收失败时的补救策略
+2. 用事务把多步数据库修改包起来
 
 ## 15.4 传输路径仍然限制为当前目录下单层文件名
 
@@ -1033,7 +1093,7 @@ paths 表 + parent_id
 2. 服务端通过 `epoll + 线程池` 接入并处理多个连接
 3. 每个连接都维护一份 `ClientContext`
 4. 用户目录树保存在 `paths` 表中
-5. 真实文件保存在 `files` 表和 `test/files/<sha256>` 中
+5. `files` 表保存真实文件元数据，文件内容保存在 `test/files/<sha256>` 中
 6. 上传时先按 hash 查重，能秒传就不再传内容
 7. 下载时先查逻辑路径，再查真实文件 hash，最后定位磁盘文件
 8. `touch` 现在也已经和整个文件实体模型保持一致
@@ -1047,4 +1107,3 @@ paths 表 + parent_id
 - 它和上下游模块是怎么协作的
 
 这就是学习这种工程型项目时，最关键的一步。
-
